@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -36,8 +36,9 @@
 #include "XBMCOperations.h"
 #include "ApplicationOperations.h"
 #include "PVROperations.h"
-#include "ProfilesOperations.h"
 #include "FavouritesOperations.h"
+#include "PictureLibrary.h"
+#include "ContactLibrary.h"
 
 using namespace std;
 using namespace JSONRPC;
@@ -89,13 +90,46 @@ JsonRpcMethodMap CJSONServiceDescription::m_methodMaps[] = {
   { "Playlist.Remove",                              CPlaylistOperations::Remove },
   { "Playlist.Swap",                                CPlaylistOperations::Swap },
 
-// Files
+  // Files
   { "Files.GetSources",                             CFileOperations::GetRootDirectory },
   { "Files.GetDirectory",                           CFileOperations::GetDirectory },
   { "Files.GetFileDetails",                         CFileOperations::GetFileDetails },
   { "Files.PrepareDownload",                        CFileOperations::PrepareDownload },
   { "Files.Download",                               CFileOperations::Download },
+  
+  // Picture Library
+  { "PictureLibrary.GetFaces",                      CPictureLibrary::GetFaces },
+  { "PictureLibrary.GetFaceDetails",                CPictureLibrary::GetFaceDetails },
+  { "PictureLibrary.AddPictureAlbum",              CPictureLibrary::AddPictureAlbum },
+  { "PictureLibrary.AddVideoAlbum",              CPictureLibrary::AddVideoAlbum },
+  { "PictureLibrary.AddPicture",              CPictureLibrary::AddPicture },
+  { "PictureLibrary.AddVideo",              CPictureLibrary::AddVideo },
+  { "PictureLibrary.GetPictureAlbums",              CPictureLibrary::GetPictureAlbums },
+  { "PictureLibrary.GetPictureAlbumDetails",        CPictureLibrary::GetPictureAlbumDetails },
+  { "PictureLibrary.GetPictures",                   CPictureLibrary::GetPictures },
+  { "PictureLibrary.GetPictureDetails",             CPictureLibrary::GetPictureDetails },
+  { "PictureLibrary.GetRecentlyAddedPictureAlbums", CPictureLibrary::GetRecentlyAddedPictureAlbums },
+  { "PictureLibrary.GetRecentlyAddedPictures",      CPictureLibrary::GetRecentlyAddedPictures },
+  { "PictureLibrary.GetVideoAlbums",              CPictureLibrary::GetVideoAlbums },
+  { "PictureLibrary.GetVideoAlbumDetails",        CPictureLibrary::GetVideoAlbumDetails },
+  { "PictureLibrary.GetVideos",                   CPictureLibrary::GetVideos },
+  { "PictureLibrary.GetVideoDetails",             CPictureLibrary::GetVideoDetails },
+  { "PictureLibrary.GetRecentlyAddedVideoAlbums", CPictureLibrary::GetRecentlyAddedVideoAlbums },
+  { "PictureLibrary.GetRecentlyAddedVideos",      CPictureLibrary::GetRecentlyAddedVideos },
 
+  { "PictureLibrary.GetLocations",                  CPictureLibrary::GetLocations },
+  { "PictureLibrary.SetFaceDetails",                CPictureLibrary::SetFaceDetails },
+  { "PictureLibrary.SetPictureAlbumDetails",        CPictureLibrary::SetPictureAlbumDetails },
+  { "PictureLibrary.SetPictureDetails",             CPictureLibrary::SetPictureDetails },
+  { "PictureLibrary.Scan",                          CPictureLibrary::Scan },
+  { "PictureLibrary.Export",                        CPictureLibrary::Export },
+  { "PictureLibrary.Clean",                         CPictureLibrary::Clean },
+ 
+// Contact Library
+  { "ContactLibrary.AddContact",                    CContactLibrary::AddContact },
+  { "ContactLibrary.GetContacts",                    CContactLibrary::GetContacts },
+  { "ContactLibrary.GetContactDetails",              CContactLibrary::GetContactDetails },
+    
 // Music Library
   { "AudioLibrary.GetArtists",                      CAudioLibrary::GetArtists },
   { "AudioLibrary.GetArtistDetails",                CAudioLibrary::GetArtistDetails },
@@ -116,6 +150,10 @@ JsonRpcMethodMap CJSONServiceDescription::m_methodMaps[] = {
   { "AudioLibrary.Clean",                           CAudioLibrary::Clean },
 
 // Video Library
+  { "VideoLibrary.GetVideos",                       CVideoLibrary::GetVideos },
+  { "VideoLibrary.GetVideoDetails",                 CVideoLibrary::GetVideoDetails },
+  { "VideoLibrary.GetStreams",                      CVideoLibrary::GetStreams },
+  { "VideoLibrary.GetStreamDetails",                CVideoLibrary::GetStreamDetails },
   { "VideoLibrary.GetGenres",                       CVideoLibrary::GetGenres },
   { "VideoLibrary.GetMovies",                       CVideoLibrary::GetMovies },
   { "VideoLibrary.GetMovieDetails",                 CVideoLibrary::GetMovieDetails },
@@ -142,7 +180,7 @@ JsonRpcMethodMap CJSONServiceDescription::m_methodMaps[] = {
   { "VideoLibrary.Scan",                            CVideoLibrary::Scan },
   { "VideoLibrary.Export",                          CVideoLibrary::Export },
   { "VideoLibrary.Clean",                           CVideoLibrary::Clean },
-  
+      
 // Addon operations
   { "Addons.GetAddons",                             CAddonsOperations::GetAddons },
   { "Addons.GetAddonDetails",                       CAddonsOperations::GetAddonDetails },
@@ -161,15 +199,8 @@ JsonRpcMethodMap CJSONServiceDescription::m_methodMaps[] = {
   { "PVR.GetChannelGroupDetails",                   CPVROperations::GetChannelGroupDetails },
   { "PVR.GetChannels",                              CPVROperations::GetChannels },
   { "PVR.GetChannelDetails",                        CPVROperations::GetChannelDetails },
-  { "PVR.GetBroadcasts",                            CPVROperations::GetBroadcasts },
-  { "PVR.GetBroadcastDetails",                      CPVROperations::GetBroadcastDetails },
   { "PVR.Record",                                   CPVROperations::Record },
   { "PVR.Scan",                                     CPVROperations::Scan },
-
-// Profiles operations
-  { "Profiles.GetProfiles",                         CProfilesOperations::GetProfiles},
-  { "Profiles.GetCurrentProfile",                   CProfilesOperations::GetCurrentProfile},
-  { "Profiles.LoadProfile",                         CProfilesOperations::LoadProfile},
 
 // System operations
   { "System.GetProperties",                         CSystemOperations::GetProperties },
@@ -686,11 +717,12 @@ JSONRPC_STATUS JSONSchemaTypeDefinition::Check(const CVariant &value, CVariant &
       for (unsigned int arrayIndex = 0; arrayIndex < value.size(); arrayIndex++)
       {
         CVariant temp;
+        CLog::Log(LOGINFO, "JSONRPC: Check element at index %u [%s] in type %s", arrayIndex, value[arrayIndex].c_str(), name.c_str());
         JSONRPC_STATUS status = itemType->Check(value[arrayIndex], temp, errorData["property"]);
         outputValue.push_back(temp);
         if (status != OK)
         {
-          CLog::Log(LOGDEBUG, "JSONRPC: Array element at index %u does not match in type %s", arrayIndex, name.c_str());
+          CLog::Log(LOGDEBUG, "JSONRPC: Array element at index %u [%s] does not match in type %s", arrayIndex, value[arrayIndex].c_str(), name.c_str());
           errorMessage.Format("array element at index %u does not match", arrayIndex);
           errorData["message"] = errorMessage.c_str();
           return status;
@@ -747,7 +779,6 @@ JSONRPC_STATUS JSONSchemaTypeDefinition::Check(const CVariant &value, CVariant &
               break;
             }
           }
-
           if (!ok)
           {
             CLog::Log(LOGDEBUG, "JSONRPC: Array contains non-conforming additional items in type %s", name.c_str());
@@ -792,6 +823,7 @@ JSONRPC_STATUS JSONSchemaTypeDefinition::Check(const CVariant &value, CVariant &
     {
       if (value.isMember(propertiesIterator->second->name))
       {
+        CLog::Log(LOGDEBUG, "JSONRPC: Property \"%s\" in type %s", propertiesIterator->second->name.c_str(), name.c_str());
         JSONRPC_STATUS status = propertiesIterator->second->Check(value[propertiesIterator->second->name], outputValue[propertiesIterator->second->name], errorData["property"]);
         if (status != OK)
         {
@@ -1137,6 +1169,8 @@ JSONSchemaTypeDefinition::CJsonSchemaPropertiesMap::CJsonSchemaPropertiesMap()
 
 void JSONSchemaTypeDefinition::CJsonSchemaPropertiesMap::add(JSONSchemaTypeDefinitionPtr property)
 {
+  CLog::Log(LOGINFO, "JSONRPC: Adding schema %s value %s", property->name.c_str(), property->description.c_str());
+
   CStdString name = property->name;
   name = name.ToLower();
   m_propertiesmap[name] = property;
@@ -1460,6 +1494,7 @@ bool CJSONServiceDescription::addMethod(const std::string &jsonMethod, MethodCal
     return false;
   }
 
+  CLog::Log(LOGINFO, "JSONRPC: Adding method \"%s\" to list of incomplete definitions (waiting for \"%s\")", methodName.c_str(), newMethod.missingReference.c_str());
   m_actionMap.add(newMethod);
 
   return true;

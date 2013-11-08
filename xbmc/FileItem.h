@@ -6,7 +6,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -52,12 +52,28 @@ namespace PVR
   class CPVRRecording;
   class CPVRTimerInfoTag;
 }
-class CPictureInfoTag;
+namespace PICTURE_INFO {
+  class CPictureInfoTag;
+}
+
+namespace CONTACT_INFO {
+  class CContactInfoTag;
+}
+
+class CContact;
+class CPhone;
+class CEmail;
 
 class CAlbum;
 class CArtist;
 class CSong;
 class CGenre;
+
+class CPictureAlbum;
+class CFace;
+class CPicture;
+class CLocation;
+
 
 class CURL;
 
@@ -70,21 +86,21 @@ enum EFileFolderType {
   EFILEFOLDER_TYPE_ALWAYS     = 1<<0,
   EFILEFOLDER_TYPE_ONCLICK    = 1<<1,
   EFILEFOLDER_TYPE_ONBROWSE   = 1<<2,
-
+  
   EFILEFOLDER_MASK_ALL        = 0xff,
   EFILEFOLDER_MASK_ONCLICK    = EFILEFOLDER_TYPE_ALWAYS
-                              | EFILEFOLDER_TYPE_ONCLICK,
+  | EFILEFOLDER_TYPE_ONCLICK,
   EFILEFOLDER_MASK_ONBROWSE   = EFILEFOLDER_TYPE_ALWAYS
-                              | EFILEFOLDER_TYPE_ONCLICK
-                              | EFILEFOLDER_TYPE_ONBROWSE,
+  | EFILEFOLDER_TYPE_ONCLICK
+  | EFILEFOLDER_TYPE_ONBROWSE,
 };
 
 /*!
-  \brief Represents a file on a share
-  \sa CFileItemList
-  */
+ \brief Represents a file on a share
+ \sa CFileItemList
+ */
 class CFileItem :
-  public CGUIListItem, public IArchivable, public ISerializable, public ISortable
+public CGUIListItem, public IArchivable, public ISerializable, public ISortable
 {
 public:
   CFileItem(void);
@@ -96,19 +112,31 @@ public:
   CFileItem(const CStdString &path, const CAlbum& album);
   CFileItem(const CArtist& artist);
   CFileItem(const CGenre& genre);
+  CFileItem(const CPicture& picture);
+  CFileItem(const CContact& contact);
+  CFileItem(const CPhone& phone);
+  CFileItem(const CEmail& email);
+  CFileItem(const CStdString &path, const CPictureAlbum& album);
+  CFileItem(const CStdString &path, const CContact& contact);
+  
+  /*
+   CFileItem(const CFace& face);
+   CFileItem(const CLocation& location);
+   */
+  CFileItem(const PICTURE_INFO::CPictureInfoTag& picture);
+  CFileItem(const CONTACT_INFO::CContactInfoTag& contact);
   CFileItem(const MUSIC_INFO::CMusicInfoTag& music);
   CFileItem(const CVideoInfoTag& movie);
   CFileItem(const EPG::CEpgInfoTag& tag);
   CFileItem(const PVR::CPVRChannel& channel);
   CFileItem(const PVR::CPVRRecording& record);
   CFileItem(const PVR::CPVRTimerInfoTag& timer);
-  CFileItem(const CMediaSource& share);
-  virtual ~CFileItem(void);
+  CFileItem(const CMediaSource& share);  virtual ~CFileItem(void);
   virtual CGUIListItem *Clone() const { return new CFileItem(*this); };
-
+  
   const CStdString &GetPath() const { return m_strPath; };
   void SetPath(const CStdString &path) { m_strPath = path; };
-
+  
   void Reset();
   const CFileItem& operator=(const CFileItem& item);
   virtual void Archive(CArchive& ar);
@@ -116,33 +144,34 @@ public:
   virtual void ToSortable(SortItem &sortable, Field field) const;
   void ToSortable(SortItem &sortable, const Fields &fields) const;
   virtual bool IsFileItem() const { return true; };
-
+  
   bool Exists(bool bUseCache = true) const;
   
   /*!
    \brief Check whether an item is a video item. Note that this returns true for
-    anything with a video info tag, so that may include eg. folders.
-   \return true if item is video, false otherwise. 
+   anything with a video info tag, so that may include eg. folders.
+   \return true if item is video, false otherwise.
    */
   bool IsVideo() const;
-
+  
   bool IsDiscStub() const;
-
+  
   /*!
    \brief Check whether an item is a picture item. Note that this returns true for
-    anything with a picture info tag, so that may include eg. folders.
-   \return true if item is picture, false otherwise. 
+   anything with a picture info tag, so that may include eg. folders.
+   \return true if item is picture, false otherwise.
    */
   bool IsPicture() const;
   bool IsLyrics() const;
-
+  bool IsContact() const;
+  
   /*!
    \brief Check whether an item is an audio item. Note that this returns true for
-    anything with a music info tag, so that may include eg. folders.
-   \return true if item is audio, false otherwise. 
+   anything with a music info tag, so that may include eg. folders.
+   \return true if item is audio, false otherwise.
    */
   bool IsAudio() const;
-
+  
   bool IsKaraoke() const;
   bool IsCUESheet() const;
   bool IsInternetStream(const bool bStrictCheck = false) const;
@@ -170,8 +199,8 @@ public:
   bool IsOnDVD() const;
   bool IsOnLAN() const;
   bool IsHD() const;
-  bool IsNfs() const;  
-  bool IsAfp() const;    
+  bool IsNfs() const;
+  bool IsAfp() const;
   bool IsRemote() const;
   bool IsSmb() const;
   bool IsURL() const;
@@ -179,6 +208,8 @@ public:
   bool IsStack() const;
   bool IsMultiPath() const;
   bool IsMusicDb() const;
+  bool IsContactDb() const;
+  bool IsPictureDb() const;
   bool IsVideoDb() const;
   bool IsEPG() const;
   bool IsPVRChannel() const;
@@ -201,7 +232,7 @@ public:
   bool IsLiveTV() const;
   bool IsRSS() const;
   bool IsAndroidApp() const;
-
+  
   void RemoveExtension();
   void CleanString();
   void FillInDefaultIcon();
@@ -214,171 +245,189 @@ public:
   bool SortsOnTop() const { return m_specialSort == SortSpecialOnTop; }
   bool SortsOnBottom() const { return m_specialSort == SortSpecialOnBottom; }
   void SetSpecialSort(SortSpecial sort) { m_specialSort = sort; }
-
+  
   inline bool HasMusicInfoTag() const
   {
     return m_musicInfoTag != NULL;
   }
-
+  
   MUSIC_INFO::CMusicInfoTag* GetMusicInfoTag();
-
+  
   inline const MUSIC_INFO::CMusicInfoTag* GetMusicInfoTag() const
   {
     return m_musicInfoTag;
-  }
-
-  inline bool HasVideoInfoTag() const
-  {
-    return m_videoInfoTag != NULL;
-  }
-
-  CVideoInfoTag* GetVideoInfoTag();
-
-  inline const CVideoInfoTag* GetVideoInfoTag() const
-  {
-    return m_videoInfoTag;
-  }
-
-  inline bool HasEPGInfoTag() const
-  {
-    return m_epgInfoTag != NULL;
-  }
-
-  EPG::CEpgInfoTag* GetEPGInfoTag();
-
-  inline const EPG::CEpgInfoTag* GetEPGInfoTag() const
-  {
-    return m_epgInfoTag;
-  }
-
-  inline bool HasPVRChannelInfoTag() const
-  {
-    return m_pvrChannelInfoTag != NULL;
-  }
-
-  PVR::CPVRChannel* GetPVRChannelInfoTag();
-
-  inline const PVR::CPVRChannel* GetPVRChannelInfoTag() const
-  {
-    return m_pvrChannelInfoTag;
-  }
-
-  inline bool HasPVRRecordingInfoTag() const
-  {
-    return m_pvrRecordingInfoTag != NULL;
-  }
-
-  PVR::CPVRRecording* GetPVRRecordingInfoTag();
-
-  inline const PVR::CPVRRecording* GetPVRRecordingInfoTag() const
-  {
-    return m_pvrRecordingInfoTag;
-  }
-
-  inline bool HasPVRTimerInfoTag() const
-  {
-    return m_pvrTimerInfoTag != NULL;
-  }
-
-  PVR::CPVRTimerInfoTag* GetPVRTimerInfoTag();
-
-  inline const PVR::CPVRTimerInfoTag* GetPVRTimerInfoTag() const
-  {
-    return m_pvrTimerInfoTag;
   }
 
   inline bool HasPictureInfoTag() const
   {
     return m_pictureInfoTag != NULL;
   }
-
-  inline const CPictureInfoTag* GetPictureInfoTag() const
+  
+  PICTURE_INFO::CPictureInfoTag* GetPictureInfoTag();
+  
+  inline const PICTURE_INFO::CPictureInfoTag* GetPictureInfoTag() const
   {
     return m_pictureInfoTag;
   }
 
-  CPictureInfoTag* GetPictureInfoTag();
-
+  inline bool HasContactInfoTag() const
+  {
+    return m_contactInfoTag != NULL;
+  }
+  
+  CONTACT_INFO::CContactInfoTag* GetContactInfoTag();
+  
+  inline const CONTACT_INFO::CContactInfoTag* GetContactInfoTag() const
+  {
+    return m_contactInfoTag;
+  }
+  
+  inline bool HasVideoInfoTag() const
+  {
+    return m_videoInfoTag != NULL;
+  }
+  
+  CVideoInfoTag* GetVideoInfoTag();
+  
+  inline const CVideoInfoTag* GetVideoInfoTag() const
+  {
+    return m_videoInfoTag;
+  }
+  
+  inline bool HasEPGInfoTag() const
+  {
+    return m_epgInfoTag != NULL;
+  }
+  
+  EPG::CEpgInfoTag* GetEPGInfoTag();
+  
+  inline const EPG::CEpgInfoTag* GetEPGInfoTag() const
+  {
+    return m_epgInfoTag;
+  }
+  
+  inline bool HasPVRChannelInfoTag() const
+  {
+    return m_pvrChannelInfoTag != NULL;
+  }
+  
+  PVR::CPVRChannel* GetPVRChannelInfoTag();
+  
+  inline const PVR::CPVRChannel* GetPVRChannelInfoTag() const
+  {
+    return m_pvrChannelInfoTag;
+  }
+  
+  inline bool HasPVRRecordingInfoTag() const
+  {
+    return m_pvrRecordingInfoTag != NULL;
+  }
+  
+  PVR::CPVRRecording* GetPVRRecordingInfoTag();
+  
+  inline const PVR::CPVRRecording* GetPVRRecordingInfoTag() const
+  {
+    return m_pvrRecordingInfoTag;
+  }
+  
+  inline bool HasPVRTimerInfoTag() const
+  {
+    return m_pvrTimerInfoTag != NULL;
+  }
+  
+  PVR::CPVRTimerInfoTag* GetPVRTimerInfoTag();
+  
+  inline const PVR::CPVRTimerInfoTag* GetPVRTimerInfoTag() const
+  {
+    return m_pvrTimerInfoTag;
+  }
+  
   /*!
    \brief Get the local fanart for this item if it exists
    \return path to the local fanart for this item, or empty if none exists
    \sa GetFolderThumb, GetTBNFile
    */
   CStdString GetLocalFanart() const;
-
+  
   /*! \brief Assemble the filename of a particular piece of local artwork for an item.
-             No file existence check is typically performed.
+   No file existence check is typically performed.
    \param artFile the art file to search for.
    \param useFolder whether to look in the folder for the art file. Defaults to false.
    \return the path to the local artwork.
    \sa FindLocalArt
    */
   CStdString GetLocalArt(const std::string &artFile, bool useFolder = false) const;
-
+  
   /*! \brief Assemble the filename of a particular piece of local artwork for an item,
-             and check for file existence.
+   and check for file existence.
    \param artFile the art file to search for.
    \param useFolder whether to look in the folder for the art file. Defaults to false.
    \return the path to the local artwork if it exists, empty otherwise.
    \sa GetLocalArt
    */
   CStdString FindLocalArt(const std::string &artFile, bool useFolder) const;
-
+  
   // Gets the .tbn file associated with this item
   CStdString GetTBNFile() const;
   // Gets the folder image associated with this item (defaults to folder.jpg)
   CStdString GetFolderThumb(const CStdString &folderJPG = "folder.jpg") const;
   // Gets the correct movie title
   CStdString GetMovieName(bool bUseFolderNames = false) const;
-
+  
   /*! \brief Find the base movie path (i.e. the item the user expects us to use to lookup the movie)
    For folder items, with "use foldernames for lookups" it returns the folder.
    Regardless of settings, for VIDEO_TS/BDMV it returns the parent of the VIDEO_TS/BDMV folder (if present)
-
+   
    \param useFolderNames whether we're using foldernames for lookups
    \return the base movie folder
    */
   CStdString GetBaseMoviePath(bool useFolderNames) const;
-
+  
   // Gets the user thumb, if it exists
   CStdString GetUserMusicThumb(bool alwaysCheckRemote = false, bool fallbackToFolder = false) const;
-
+  // Gets the user thumb, if it exists
+  CStdString GetUserPictureThumb(bool alwaysCheckRemote = false, bool fallbackToFolder = false) const;
+  // Gets the user thumb, if it exists
+  CStdString GetUserContactThumb(bool alwaysCheckRemote = false, bool fallbackToFolder = false) const;
+  
   /*! \brief Get the path where we expect local metadata to reside.
    For a folder, this is just the existing path (eg tvshow folder)
    For a file, this is the parent path, with exceptions made for VIDEO_TS and BDMV files
-
+   
    Three cases are handled:
-
-     /foo/bar/movie_name/file_name          -> /foo/bar/movie_name/
-     /foo/bar/movie_name/VIDEO_TS/file_name -> /foo/bar/movie_name/
-     /foo/bar/movie_name/BDMV/file_name     -> /foo/bar/movie_name/
-
-     \sa URIUtils::GetParentPath
+   
+   /foo/bar/movie_name/file_name          -> /foo/bar/movie_name/
+   /foo/bar/movie_name/VIDEO_TS/file_name -> /foo/bar/movie_name/
+   /foo/bar/movie_name/BDMV/file_name     -> /foo/bar/movie_name/
+   
+   \sa URIUtils::GetParentPath
    */
   CStdString GetLocalMetadataPath() const;
-
+  
   // finds a matching local trailer file
   CStdString FindTrailer() const;
-
+  
   virtual bool LoadMusicTag();
-
+  virtual bool LoadContactTag();
+  virtual bool LoadPictureTag();
+  
   /* Returns the content type of this item if known */
   const CStdString& GetMimeType() const { return m_mimetype; }
-
+  
   /* sets the mime-type if known beforehand */
   void SetMimeType(const CStdString& mimetype) { m_mimetype = mimetype; } ;
-
+  
   /*! \brief Resolve the MIME type based on file extension or a web lookup
    If m_mimetype is already set (non-empty), this function has no effect. For
    http:// and shout:// streams, this will query the stream (blocking operation).
    Set lookup=false to skip any internet lookups and always return immediately.
    */
   void FillInMimeType(bool lookup = true);
-
+  
   /* general extra info about the contents of the item, not for display */
   void SetExtraInfo(const CStdString& info) { m_extrainfo = info; };
   const CStdString& GetExtraInfo() const { return m_extrainfo; };
-
+  
   /*! \brief Update an item with information from another item
    We take metadata information from the given item and supplement the current item
    with that info.  If tags exist in the new item we use the entire tag information.
@@ -388,11 +437,11 @@ public:
    \param replaceLabels whether to replace labels (defaults to true)
    */
   void UpdateInfo(const CFileItem &item, bool replaceLabels = true);
-
+  
   bool IsSamePath(const CFileItem *item) const;
-
+  
   bool IsAlbum() const;
-
+  
   /*! \brief Sets details using the information from the CVideoInfoTag object
    Sets the videoinfotag and uses its information to set the label and path.
    \param video video details to use and set
@@ -410,7 +459,20 @@ public:
    \param song song details to use and set
    */
   void SetFromSong(const CSong &song);
-
+  /*! \brief Sets details using the information from the CAlbum object
+   Sets the album in the music info tag and uses its information to set the
+   label and album-specific properties.
+   \param album album details to use and set
+   */
+  void SetFromPictureAlbum(const CPictureAlbum &album);
+  /*! \brief Sets details using the information from the CSong object
+   Sets the song in the music info tag and uses its information to set the
+   label, path, song-specific properties and artwork.
+   \param song song details to use and set
+   */
+  void SetFromPicture(const CPicture &picture);
+  void SetFromContact(const CContact &contact);
+  
   bool m_bIsShareOrDrive;    ///< is this a root share/drive
   int m_iDriveType;     ///< If \e m_bIsShareOrDrive is \e true, use to get the share type. Types see: CMediaSource::m_iDriveType
   CDateTime m_dateTime;             ///< file creation date & time
@@ -426,10 +488,10 @@ public:
   CStdString m_strLockCode;
   int m_iHasLock; // 0 - no lock 1 - lock, but unlocked 2 - locked
   int m_iBadPwdCount;
-
+  
 private:
   CStdString m_strPath;            ///< complete path to item
-
+  
   SortSpecial m_specialSort;
   bool m_bIsParentFolder;
   bool m_bCanQueue;
@@ -437,63 +499,64 @@ private:
   CStdString m_mimetype;
   CStdString m_extrainfo;
   MUSIC_INFO::CMusicInfoTag* m_musicInfoTag;
+  CONTACT_INFO::CContactInfoTag* m_contactInfoTag;
+  PICTURE_INFO::CPictureInfoTag* m_pictureInfoTag;
   CVideoInfoTag* m_videoInfoTag;
   EPG::CEpgInfoTag* m_epgInfoTag;
   PVR::CPVRChannel* m_pvrChannelInfoTag;
   PVR::CPVRRecording* m_pvrRecordingInfoTag;
   PVR::CPVRTimerInfoTag * m_pvrTimerInfoTag;
-  CPictureInfoTag* m_pictureInfoTag;
   bool m_bIsAlbum;
 };
 
 /*!
-  \brief A shared pointer to CFileItem
-  \sa CFileItem
-  */
+ \brief A shared pointer to CFileItem
+ \sa CFileItem
+ */
 typedef boost::shared_ptr<CFileItem> CFileItemPtr;
 
 /*!
-  \brief A vector of pointer to CFileItem
-  \sa CFileItem
-  */
+ \brief A vector of pointer to CFileItem
+ \sa CFileItem
+ */
 typedef std::vector< CFileItemPtr > VECFILEITEMS;
 
 /*!
-  \brief Iterator for VECFILEITEMS
-  \sa CFileItemList
-  */
+ \brief Iterator for VECFILEITEMS
+ \sa CFileItemList
+ */
 typedef std::vector< CFileItemPtr >::iterator IVECFILEITEMS;
 
 /*!
-  \brief A map of pointers to CFileItem
-  \sa CFileItem
-  */
+ \brief A map of pointers to CFileItem
+ \sa CFileItem
+ */
 typedef std::map<CStdString, CFileItemPtr > MAPFILEITEMS;
 
 /*!
-  \brief Iterator for MAPFILEITEMS
-  \sa MAPFILEITEMS
-  */
+ \brief Iterator for MAPFILEITEMS
+ \sa MAPFILEITEMS
+ */
 typedef std::map<CStdString, CFileItemPtr >::iterator IMAPFILEITEMS;
 
 /*!
-  \brief Pair for MAPFILEITEMS
-  \sa MAPFILEITEMS
-  */
+ \brief Pair for MAPFILEITEMS
+ \sa MAPFILEITEMS
+ */
 typedef std::pair<CStdString, CFileItemPtr > MAPFILEITEMSPAIR;
 
 typedef bool (*FILEITEMLISTCOMPARISONFUNC) (const CFileItemPtr &pItem1, const CFileItemPtr &pItem2);
 typedef void (*FILEITEMFILLFUNC) (CFileItemPtr &item);
 
 /*!
-  \brief Represents a list of files
-  \sa CFileItemList, CFileItem
-  */
+ \brief Represents a list of files
+ \sa CFileItemList, CFileItem
+ */
 class CFileItemList : public CFileItem
 {
 public:
   enum CACHE_TYPE { CACHE_NEVER = 0, CACHE_IF_SLOW, CACHE_ALWAYS };
-
+  
   CFileItemList();
   CFileItemList(const CStdString& strPath);
   virtual ~CFileItemList();
@@ -521,12 +584,12 @@ public:
   void Reserve(int iCount);
   void Sort(SortBy sortBy, SortOrder sortOrder, SortAttribute sortAttributes = SortAttributeNone);
   /* \brief Sorts the items based on the given sorting options
-
-  In contrast to Sort (see above) this does not change the internal
-  state by storing the sorting method and order used and therefore
-  will always execute the sorting even if the list of items has
-  already been sorted with the same options before.
-  */
+   
+   In contrast to Sort (see above) this does not change the internal
+   state by storing the sorting method and order used and therefore
+   will always execute the sorting even if the list of items has
+   already been sorted with the same options before.
+   */
   void Sort(SortDescription sortDescription);
   void Randomize();
   void FillInDefaultIcons();
@@ -539,18 +602,18 @@ public:
   void SetFastLookup(bool fastLookup);
   bool Contains(const CStdString& fileName) const;
   bool GetFastLookup() const { return m_fastLookup; };
-
+  
   /*! \brief stack a CFileItemList
    By default we stack all items (files and folders) in a CFileItemList
    \param stackFiles whether to stack all items or just collapse folders (defaults to true)
    \sa StackFiles,StackFolders
    */
   void Stack(bool stackFiles = true);
-
+  
   SortOrder GetSortOrder() const { return m_sortDescription.sortOrder; }
   SortBy GetSortMethod() const { return m_sortDescription.sortBy; }
   /*! \brief load a CFileItemList out of the cache
-
+   
    The file list may be cached based on which window we're viewing in, as different
    windows will be listing different portions of the same URL (eg viewing music files
    versus viewing video files)
@@ -560,7 +623,7 @@ public:
    \sa Save,RemoveDiscCache
    */
   bool Load(int windowID = 0);
-
+  
   /*! \brief save a CFileItemList to the cache
    
    The file list may be cached based on which window we're viewing in, as different
@@ -586,21 +649,21 @@ public:
    */
   void RemoveDiscCache(int windowID = 0) const;
   bool AlwaysCache() const;
-
+  
   void Swap(unsigned int item1, unsigned int item2);
-
+  
   /*! \brief Update an item in the item list
    \param item the new item, which we match based on path to an existing item in the list
    \return true if the item exists in the list (and was thus updated), false otherwise.
    */
   bool UpdateItem(const CFileItem *item);
-
+  
   void AddSortMethod(SortBy sortBy, int buttonLabel, const LABEL_MASKS &labelMasks, SortAttribute sortAttributes = SortAttributeNone);
   void AddSortMethod(SortBy sortBy, SortAttribute sortAttributes, int buttonLabel, const LABEL_MASKS &labelMasks);
   void AddSortMethod(SortDescription sortDescription, int buttonLabel, const LABEL_MASKS &labelMasks);
   bool HasSortDetails() const { return m_sortDetails.size() != 0; };
   const std::vector<SORT_METHOD_DETAILS> &GetSortDetails() const { return m_sortDetails; };
-
+  
   /*! \brief Specify whether this list should be sorted with folders separate from files
    By default we sort with folders listed (and sorted separately) except for those sort modes
    which should be explicitly sorted with folders interleaved with files (eg SORT_METHOD_FILES).
@@ -612,25 +675,25 @@ public:
   void SetReplaceListing(bool replace);
   void SetContent(const CStdString &content) { m_content = content; };
   const CStdString &GetContent() const { return m_content; };
-
+  
   void ClearSortState();
 private:
   void Sort(FILEITEMLISTCOMPARISONFUNC func);
   void FillSortFields(FILEITEMFILLFUNC func);
   CStdString GetDiscFileCache(int windowID) const;
-
+  
   /*!
    \brief stack files in a CFileItemList
    \sa Stack
    */
   void StackFiles();
-
+  
   /*!
    \brief stack folders in a CFileItemList
    \sa Stack
    */
   void StackFolders();
-
+  
   VECFILEITEMS m_items;
   MAPFILEITEMS m_map;
   bool m_fastLookup;
@@ -639,8 +702,8 @@ private:
   CACHE_TYPE m_cacheToDisc;
   bool m_replaceListing;
   CStdString m_content;
-
+  
   std::vector<SORT_METHOD_DETAILS> m_sortDetails;
-
+  
   CCriticalSection m_lock;
 };

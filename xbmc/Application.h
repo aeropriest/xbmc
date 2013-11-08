@@ -84,6 +84,10 @@ namespace MUSIC_INFO
 {
   class CMusicInfoScanner;
 }
+namespace PICTURE_INFO
+{
+  class CPictureInfoScanner;
+}
 
 #define VOLUME_MINIMUM 0.0f        // -60dB
 #define VOLUME_MAXIMUM 1.0f        // 0dB
@@ -112,11 +116,11 @@ protected:
 };
 
 class CApplication : public CXBApplicationEx, public IPlayerCallback, public IMsgTargetCallback,
-                     public ISettingCallback, public ISettingsHandler, public ISubSettings
+public ISettingCallback, public ISettingsHandler, public ISubSettings
 {
   friend class CApplicationPlayer;
 public:
-
+  
   enum ESERVERS
   {
     ES_WEBSERVER = 1,
@@ -127,7 +131,7 @@ public:
     ES_EVENTSERVER,
     ES_ZEROCONF
   };
-
+  
   CApplication(void);
   virtual ~CApplication(void);
   virtual bool Initialize();
@@ -137,15 +141,15 @@ public:
   virtual void Preflight();
   virtual bool Create();
   virtual bool Cleanup();
-
+  
   bool CreateGUI();
   bool InitWindow();
   bool DestroyWindow();
   void StartServices();
   void StopServices();
-
+  
   bool StartServer(enum ESERVERS eServer, bool bStart, bool bWait = false);
-
+  
   void StartPVRManager(bool bOpenPVRWindow = false);
   void StopPVRManager();
   bool IsCurrentThread() const;
@@ -191,7 +195,7 @@ public:
   void CheckPlayingProgress();
   void ActivateScreenSaver(bool forceType = false);
   void CloseNetworkShares();
-
+  
   virtual void Process();
   void ProcessSlow();
   void ResetScreenSaver();
@@ -212,64 +216,67 @@ public:
   bool WakeUpScreenSaver(bool bPowerOffKeyPressed = false);
   /*!
    \brief Returns the total time in fractional seconds of the currently playing media
-
+   
    Beware that this method returns fractional seconds whereas IPlayer::GetTotalTime() returns milliseconds.
    */
   double GetTotalTime() const;
   /*!
    \brief Returns the current time in fractional seconds of the currently playing media
-
+   
    Beware that this method returns fractional seconds whereas IPlayer::GetTime() returns milliseconds.
    */
   double GetTime() const;
   float GetPercentage() const;
-
+  
   // Get the percentage of data currently cached/buffered (aq/vq + FileCache) from the input stream if applicable.
   float GetCachePercentage() const;
-
+  
   void SeekPercentage(float percent);
   void SeekTime( double dTime = 0.0 );
-
+  
   void StopShutdownTimer();
   void ResetShutdownTimers();
-
+  
   void StopVideoScan();
   void StopMusicScan();
   bool IsMusicScanning() const;
   bool IsVideoScanning() const;
-
+  void StopPictureScan();
+  bool IsPictureScanning() const;
+  
   void StartVideoCleanup();
-
+  
+  void StartPictureScan(const CStdString &path, int flags = 0);
   void StartVideoScan(const CStdString &path, bool scanAll = false);
   void StartMusicScan(const CStdString &path, int flags = 0);
   void StartMusicAlbumScan(const CStdString& strDirectory, bool refresh=false);
   void StartMusicArtistScan(const CStdString& strDirectory, bool refresh=false);
-
+  
   void UpdateLibraries();
   void CheckMusicPlaylist();
-
+  
   bool ExecuteXBMCAction(std::string action);
-
+  
   static bool OnEvent(XBMC_Event& newEvent);
-
+  
   CNetwork& getNetwork();
 #ifdef HAS_PERFORMANCE_SAMPLE
   CPerformanceStats &GetPerformanceStats();
 #endif
-
+  
 #ifdef HAS_DVD_DRIVE
   MEDIA_DETECT::CAutorun* m_Autorun;
 #endif
-
+  
 #if !defined(TARGET_WINDOWS) && defined(HAS_DVD_DRIVE)
   MEDIA_DETECT::CDetectDVDMedia m_DetectDVDType;
 #endif
-
+  
   CApplicationPlayer* m_pPlayer;
-
+  
   inline bool IsInScreenSaver() { return m_bScreenSave; };
   int m_iScreenSaveLock; // spiff: are we checking for a lock? if so, ignore the screensaver state, if -1 we have failed to input locks
-
+  
   bool m_bPlaybackStarting;
   typedef enum
   {
@@ -281,102 +288,105 @@ public:
   } PlayState;
   PlayState m_ePlayState;
   CCriticalSection m_playStateMutex;
-
+  
   bool m_bInBackground;
   inline bool IsInBackground() { return m_bInBackground; };
   void SetInBackground(bool background);
-
+  
   CKaraokeLyricsManager* m_pKaraokeMgr;
-
+  
   PLAYERCOREID m_eForcedNextPlayer;
   CStdString m_strPlayListFile;
-
+  
   int GlobalIdleTime();
-
+  
   void EnablePlatformDirectories(bool enable=true)
   {
     m_bPlatformDirectories = enable;
   }
-
+  
   bool PlatformDirectoriesEnabled()
   {
     return m_bPlatformDirectories;
   }
-
+  
   void SetStandAlone(bool value);
-
+  
   bool IsStandAlone()
   {
     return m_bStandalone;
   }
-
+  
   void SetEnableLegacyRes(bool value)
   {
     m_bEnableLegacyRes = value;
   }
-
+  
   bool IsEnableLegacyRes()
   {
     return m_bEnableLegacyRes;
   }
-
+  
   void SetEnableTestMode(bool value)
   {
     m_bTestMode = value;
   }
-
+  
   bool IsEnableTestMode()
   {
     return m_bTestMode;
   }
-
+  
   void Minimize();
   bool ToggleDPMS(bool manual);
-
+  
   float GetDimScreenSaverLevel() const;
-
+  
   /*! \brief Retrieve the applications seek handler.
    \return a constant pointer to the seek handler.
    \sa CSeekHandler
    */
   const CSeekHandler *GetSeekHandler() const { return m_seekHandler; };
-
+  
   bool SwitchToFullScreen();
-
+  
   CSplash* GetSplash() { return m_splash; }
   void SetRenderGUI(bool renderGUI);
   bool GetRenderGUI() const { return m_renderGUI; };
-
+  
   bool SetLanguage(const CStdString &strLanguage);
-
+  
   ReplayGainSettings& GetReplayGainSettings() { return m_replayGainSettings; }
-
+  
   void SetLoggingIn(bool loggingIn) { m_loggingIn = loggingIn; }
-
+  
 protected:
   virtual bool OnSettingsSaving() const;
-
+  
   virtual bool Load(const TiXmlNode *settings);
   virtual bool Save(TiXmlNode *settings) const;
-
+  
   virtual void OnSettingChanged(const CSetting *setting);
   virtual void OnSettingAction(const CSetting *setting);
   virtual bool OnSettingUpdate(CSetting* &setting, const char *oldSettingId, const TiXmlNode *oldSettingNode);
-
+  
   bool LoadSkin(const CStdString& skinID);
   void LoadSkin(const boost::shared_ptr<ADDON::CSkinInfo>& skin);
-
+  
   bool m_skinReloading; // if true we disallow LoadSkin until ReloadSkin is called
-
+  
   bool m_loggingIn;
-
+  
 #if defined(TARGET_DARWIN_IOS)
   friend class CWinEventsIOS;
+#endif
+#if defined(TARGET_ANDROID)
+  friend class CWinEventsAndroid;
 #endif
   // screensaver
   bool m_bScreenSave;
   ADDON::AddonPtr m_screenSaver;
-
+  
   // timer information
 #ifdef TARGET_WINDOWS
   CWinIdleTimer m_idleTimer;
@@ -390,72 +400,73 @@ protected:
   CStopWatch m_navigationTimer;
   CStopWatch m_slowTimer;
   CStopWatch m_shutdownTimer;
-
+  
   bool m_bInhibitIdleShutdown;
-
+  
   DPMSSupport* m_dpms;
   bool m_dpmsIsActive;
   bool m_dpmsIsManual;
-
+  
   CFileItemPtr m_itemCurrentFile;
   CFileItemList* m_currentStack;
   CFileItemPtr m_stackFileItemToUpdate;
-
+  
   CStdString m_prevMedia;
   CSplash* m_splash;
   ThreadIdentifier m_threadID;       // application thread ID.  Used in applicationMessanger to know where we are firing a thread with delay from.
   bool m_bInitializing;
   bool m_bPlatformDirectories;
-
+  
   CBookmark& m_progressTrackingVideoResumeBookmark;
   CFileItemPtr m_progressTrackingItem;
   bool m_progressTrackingPlayCountUpdate;
-
+  
   int m_currentStackPosition;
   int m_nextPlaylistItem;
-
+  
   bool m_bPresentFrame;
   unsigned int m_lastFrameTime;
   unsigned int m_lastRenderTime;
-
+  
   bool m_bStandalone;
   bool m_bEnableLegacyRes;
   bool m_bTestMode;
   bool m_bSystemScreenSaverEnable;
-
+  
   VIDEO::CVideoInfoScanner *m_videoInfoScanner;
   MUSIC_INFO::CMusicInfoScanner *m_musicInfoScanner;
-
+  PICTURE_INFO::CPictureInfoScanner *m_pictureInfoScanner;
+  
   bool m_muted;
   float m_volumeLevel;
-
+  
   void Mute();
   void UnMute();
-
+  
   void SetHardwareVolume(float hardwareVolume);
-
+  
   void VolumeChanged() const;
-
+  
   PlayBackRet PlayStack(const CFileItem& item, bool bRestart);
   bool ProcessMouse();
   bool ProcessRemote(float frameTime);
   bool ProcessGamepad(float frameTime);
   bool ProcessEventServer(float frameTime);
   bool ProcessPeripherals(float frameTime);
-  bool ProcessJoystickEvent(const std::string& joystickName, int button, bool isAxis, float fAmount, unsigned int holdTime = 0);
+  bool ProcessJoystickEvent(const std::string& joystickName, int button, short inputType, float fAmount, unsigned int holdTime = 0);
   bool ExecuteInputAction(const CAction &action);
   int  GetActiveWindowID(void);
-
+  
   float NavigationIdleTime();
   static bool AlwaysProcess(const CAction& action);
-
+  
   void SaveCurrentFileSettings();
-
+  
   bool InitDirectoriesLinux();
   bool InitDirectoriesOSX();
   bool InitDirectoriesWin32();
   void CreateUserDirs();
-
+  
   CSeekHandler *m_seekHandler;
   CPlayerController *m_playerController;
   CInertialScrollingHandler *m_pInertialScrollingHandler;
@@ -463,11 +474,11 @@ protected:
 #ifdef HAS_PERFORMANCE_SAMPLE
   CPerformanceStats m_perfStats;
 #endif
-
+  
 #ifdef HAS_EVENT_SERVER
   std::map<std::string, std::map<int, float> > m_lastAxisMap;
 #endif
-
+  
   ReplayGainSettings m_replayGainSettings;
 };
 

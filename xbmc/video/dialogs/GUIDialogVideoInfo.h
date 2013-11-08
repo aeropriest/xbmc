@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,10 +23,8 @@
 #include "guilib/GUIDialog.h"
 #include "FileItem.h"
 
-class CVideoDatabase;
-
 class CGUIDialogVideoInfo :
-      public CGUIDialog
+public CGUIDialog
 {
 public:
   CGUIDialogVideoInfo(void);
@@ -37,27 +35,19 @@ public:
   bool NeedRefresh() const;
   bool RefreshAll() const;
   bool HasUpdatedThumb() const { return m_hasUpdatedThumb; };
-
+  
   std::string GetThumbnail() const;
   virtual CFileItemPtr GetCurrentListItem(int offset = 0) { return m_movieItem; }
   const CFileItemList& CurrentDirectory() const { return *m_castList; };
   virtual bool HasListItems() const { return true; };
-
+  
   static std::string ChooseArtType(const CFileItem &item, std::map<std::string, std::string> &currentArt);
   static void AddItemPathToFileBrowserSources(VECSOURCES &sources, const CFileItem &item);
-
-  static int ManageVideoItem(const CFileItemPtr &item);
-  static bool UpdateVideoItemTitle(const CFileItemPtr &pItem);
-  static bool MarkWatched(const CFileItemPtr &item, bool bMark);
-
-  static bool GetMoviesForSet(const CFileItem *setItem, CFileItemList &originalMovies, CFileItemList &selectedMovies);
-  static bool GetSetForMovie(const CFileItem *movieItem, CFileItemPtr &selectedSet);
-  static bool SetMovieSet(const CFileItem *movieItem, const CFileItem *selectedSet);
 protected:
   virtual void OnInitWindow();
   void Update();
   void SetLabel(int iControl, const CStdString& strLabel);
-
+  
   // link cast to movies
   void ClearCastList();
   void OnSearch(CStdString& strSearch);
@@ -67,10 +57,7 @@ protected:
   void OnGetArt();
   void OnGetFanart();
   void PlayTrailer();
-
-  static bool UpdateVideoItemSortTitle(const CFileItemPtr &pItem);
-  static bool LinkMovieToTvShow(const CFileItemPtr &item, bool bRemove, CVideoDatabase &database);
-
+  
   CFileItemPtr m_movieItem;
   CFileItemList *m_castList;
   bool m_bViewReview;

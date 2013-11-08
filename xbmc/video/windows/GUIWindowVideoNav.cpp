@@ -1058,6 +1058,8 @@ bool CGUIWindowVideoNav::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
   {
   case CONTEXT_BUTTON_EDIT:
     {
+      //jais
+      /*
       CONTEXT_BUTTON ret = (CONTEXT_BUTTON)CGUIDialogVideoInfo::ManageVideoItem(item);
       if (ret >= 0)
       {
@@ -1066,6 +1068,7 @@ bool CGUIWindowVideoNav::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
 
         Refresh(true);
       }
+       */
       return true;
     }
 
@@ -1296,7 +1299,8 @@ bool CGUIWindowVideoNav::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
     {
       CFileItemList originalItems;
       CFileItemList selectedItems;
-
+      //jais
+      /*
       if (!CGUIDialogVideoInfo::GetMoviesForSet(item.get(), originalItems, selectedItems) || selectedItems.Size() == 0) // need at least one item selected
         return true;
       VECFILEITEMS original = originalItems.GetList();
@@ -1327,6 +1331,7 @@ bool CGUIWindowVideoNav::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
       // we need to clear any cached version of this tag's listing
       if (refreshNeeded) 
         Refresh();
+       */
       return true;
     }
   case CONTEXT_BUTTON_GO_TO_ARTIST:

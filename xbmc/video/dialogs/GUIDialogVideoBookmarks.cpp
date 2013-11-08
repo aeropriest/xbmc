@@ -306,12 +306,10 @@ bool CGUIDialogVideoBookmarks::AddBookmark(CVideoInfoTag* tag)
   CBookmark bookmark;
   bookmark.timeInSeconds = (int)g_application.GetTime();
   bookmark.totalTimeInSeconds = (int)g_application.GetTotalTime();
-
   if( g_application.m_pPlayer->HasPlayer() )
     bookmark.playerState = g_application.m_pPlayer->GetPlayerState();
   else
     bookmark.playerState.Empty();
-
   bookmark.player = CPlayerCoreFactory::Get().GetPlayerName(g_application.GetCurrentPlayer());
 
   // create the thumbnail image

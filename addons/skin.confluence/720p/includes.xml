@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <includes>
 	<include file="defaults.xml" />
 	<include file="ViewsVideoLibrary.xml" />
@@ -25,14 +24,25 @@
 		<value condition="!IsEmpty(ListItem.Art(banner))">$INFO[ListItem.Art(banner)]</value>
 		<value condition="IsEmpty(ListItem.Art(banner))">$INFO[ListItem.Icon]</value>
 	</variable>
+        <variable name="value_defaultvideofanart">
+                 <value condition="Container(8003).Hasfocus(8006)">../backgrounds/tv.jpg</value>
+                 <value condition="IsEmpty(ListItem.Art(fanart)) + !Container.Content(pictures)">../backgrounds/SKINDEFAULT.jpg</value>
+	         <value condition="!IsEmpty(Window.Property(LatestPictureAlbum.1.Fanart))">$INFO[Window.Property(LatestPictureAlbum.1.Fanart)]</value>
+	         <value condition="!IsEmpty(ListItem.Art(fanart)) + Container.Content(pictures)">$INFO[ListItem.Art(fanart)]</value>
+        </variable>
 	<variable name="PosterThumb">
 		<value condition="!IsEmpty(ListItem.Art(poster))">$INFO[ListItem.Art(poster)]</value>
 		<value condition="IsEmpty(ListItem.Art(poster))">$INFO[ListItem.Icon]</value>
 	</variable>
-	<variable name="PlayList">
-		<value condition="Player.HasVideo">ActivateWindow(videoplaylist)</value>
-		<value condition="Player.HasAudio">ActivateWindow(musicplaylist)</value>
-	</variable>
+
+  <include name="CommonFanartVarsSingle">
+    <posx>0</posx>
+    <posy>0</posy>
+    <width>1280</width>
+    <height>720</height>
+    <fadetime>100</fadetime>
+    <aspectratio align="center">scale</aspectratio>
+  </include>
 
 	<include name="BehindDialogFadeOut">
 		<control type="image">
@@ -153,7 +163,7 @@
 		<control type="image">
 			<description>LOGO</description>
 			<posx>15</posx>
-			<posy>0</posy>
+			<posy>50</posy>
 			<width>220</width>
 			<height>80</height>
 			<aspectratio>keep</aspectratio>
@@ -175,6 +185,7 @@
 				<height>45</height>
 				<label>1036</label>
 				<font>-</font>
+				<aligny>-</aligny>
 				<onclick>back</onclick>
 				<texturefocus border="5">floor_buttonFO.png</texturefocus>
 				<texturenofocus border="5">floor_button.png</texturenofocus>
@@ -200,6 +211,7 @@
 				<height>45</height>
 				<label>31003</label>
 				<font>-</font>
+				<aligny>-</aligny>
 				<onclick>ActivateWindow(home)</onclick>
 				<texturefocus border="5">floor_buttonFO.png</texturefocus>
 				<texturenofocus border="5">floor_button.png</texturenofocus>
@@ -233,6 +245,7 @@
 				<height>45</height>
 				<label>31003</label>
 				<font>-</font>
+				<aligny>-</aligny>
 				<onclick>ActivateWindow(PlayerControls)</onclick>
 				<texturefocus border="5">floor_buttonFO.png</texturefocus>
 				<texturenofocus border="5">floor_button.png</texturenofocus>
@@ -885,20 +898,9 @@
 			<include>ButtonCommonValues</include>
 			<label>31008</label>
 			<onclick>fullscreen</onclick>
-			<textureradioonfocus>GoFullscreen.png</textureradioonfocus>
-			<textureradioonnofocus>GoFullscreen.png</textureradioonnofocus>
-			<textureradioofffocus>GoFullscreen.png</textureradioofffocus>
-			<textureradiooffnofocus>GoFullscreen.png</textureradiooffnofocus>
+			<textureradiofocus>GoFullscreen.png</textureradiofocus>
+			<textureradionofocus>GoFullscreen.png</textureradionofocus>
 			<visible>Player.HasMedia</visible>
-		</control>
-		<control type="button" id="612">
-			<description>Go to playlist</description>
-			<include>ButtonCommonValues</include>
-			<label>13350</label>
-			<onclick>$VAR[PlayList]</onclick>
-			<visible>Player.HasMedia</visible>
-			<visible>!VideoPlayer.Content(LiveTV)</visible>
-			<visible>!Window.IsVisible(MusicPlaylist) + !Window.IsVisible(VideoPlaylist)</visible>
 		</control>
 	</include>
 	<include name="ScrollOffsetLabel">
@@ -1221,8 +1223,8 @@
 		</focusedlayout>
 	</include>
 	<include name="backgroundfade">
-		<animation effect="fade" time="600">Visible</animation>
-		<animation effect="fade" time="600">Hidden</animation>
+		 <animation effect="fade" time="600">Visible</animation>
+		 <animation effect="fade" time="600">Hidden</animation>
 	</include>
 	<include name="Window_OpenClose_Animation">
 		<animation effect="fade" time="250">WindowOpen</animation>

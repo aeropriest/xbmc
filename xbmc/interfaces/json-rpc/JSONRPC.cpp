@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -83,6 +83,15 @@ void CJSONRPC::Initialize()
   CSmartPlaylist::GetAvailableFields("songs", smartplaylistList);
   CJSONServiceDescription::AddEnum("List.Filter.Fields.Songs", smartplaylistList);
 
+  smartplaylistList.clear();
+  CSmartPlaylist::GetAvailableFields("pictures", smartplaylistList);
+  CJSONServiceDescription::AddEnum("List.Filter.Fields.Pictures", smartplaylistList);
+  
+  smartplaylistList.clear();
+  CSmartPlaylist::GetAvailableFields("contacts", smartplaylistList);
+  CJSONServiceDescription::AddEnum("List.Filter.Fields.Contacts", smartplaylistList);
+  
+  
   unsigned int size = sizeof(JSONRPC_SERVICE_TYPES) / sizeof(char*);
 
   for (unsigned int index = 0; index < size; index++)
