@@ -24,7 +24,7 @@
 #include "utils/log.h"
 #include "guilib/gui3d.h"
 #include "linux/DllBCM.h"
-
+#include <fstream>
 #ifndef __VIDEOCORE4__
 #define __VIDEOCORE4__
 #endif
@@ -89,9 +89,17 @@ void CEGLNativeTypeRaspberryPI::Initialize()
   m_DllBcmHost              = NULL;
   m_dispman_element         = DISPMANX_NO_HANDLE;
   m_dispman_display         = DISPMANX_NO_HANDLE;
+  
+  m_width = 1280;
+  m_height = 720;
 
-  m_width                   = 1280;
-  m_height                  = 720;
+  std::ifstream limitfile("/home/pi/.nolimit");
+  if (limitfile.good())
+  {
+  m_width = 1920, m_height = 1080;
+  }
+
+
   m_initDesktopRes          = true;
 
   m_DllBcmHost = new DllBcmHost;
@@ -617,7 +625,17 @@ void CEGLNativeTypeRaspberryPI::CallbackTvServiceCallback(void *userdata, uint32
 
 bool CEGLNativeTypeRaspberryPI::ClampToGUIDisplayLimits(int &width, int &height)
 {
-  const int max_width = 1280, max_height = 720;
+ int max_width = 1280, max_height = 720;
+ std::ifstream limitfile("/home/pi/.nolimit");
+  if (limitfile.good())
+  {
+  CLog::Log(LOGDEBUG, "Found the nolimit clamping file, allow 1080p");
+  max_width = 1920, max_height = 1080;
+  }
+  else
+  {
+  CLog::Log(LOGDEBUG, "Clamped to 1280*720");
+  }
   float ar = (float)width/(float)height;
   // bigger than maximum, so need to clamp
   if (width > max_width || height > max_height) {

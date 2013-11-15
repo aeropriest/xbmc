@@ -48,6 +48,19 @@ static const uint16_t AC3FSCod   [] = {48000, 44100, 32000, 0};
 
 static const uint16_t DTSFSCod   [] = {0, 8000, 16000, 32000, 0, 0, 11025, 22050, 44100, 0, 0, 12000, 24000, 48000, 0, 0};
 
+// 7.1 downmixing coefficients with boosted centre channel
+const float downmixing_coefficients_8_boostcentre[OMX_AUDIO_MAXCHANNELS] = {
+  //        L       R
+  /* L */   0.7071, 0,
+  /* R */   0,      0.7071,
+  /* C */   1,      1,
+  /* LFE */ 0.7071, 0.7071,
+  /* Ls */  0.7071, 0,
+  /* Rs */  0,      0.7071,
+  /* Lr */  0.7071, 0,
+  /* Rr */  0,      0.7071
+};
+
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
@@ -460,7 +473,6 @@ bool COMXAudio::Initialize(AEAudioFormat format, OMXClock *clock, CDVDStreamInfo
   m_drc         = 0;
 
   memset(m_input_channels, 0x0, sizeof(m_input_channels));
-  memset(m_output_channels, 0x0, sizeof(m_output_channels));
   memset(&m_wave_header, 0x0, sizeof(m_wave_header));
 
   m_wave_header.Format.nChannels  = 2;
@@ -493,7 +505,7 @@ bool COMXAudio::Initialize(AEAudioFormat format, OMXClock *clock, CDVDStreamInfo
   m_BufferLen     *= AUDIO_BUFFER_SECONDS;
   // the audio_decode output buffer size is 32K, and typically we convert from
   // 6 channel 32bpp float to 8 channel 16bpp in, so a full 48K input buffer will fit the outbut buffer
-  m_ChunkLen      = 48*1024;
+  m_ChunkLen      = AUDIO_DECODE_OUTPUT_BUFFER * 2 * 6 / 8;
 
   m_wave_header.Samples.wSamplesPerBlock    = 0;
   m_wave_header.Format.nChannels            = m_InputChannels;
@@ -983,8 +995,13 @@ unsigned int COMXAudio::AddPackets(const void* data, unsigned int len, double dt
     omx_buffer->nOffset = 0;
     omx_buffer->nFlags  = 0;
 
+    // we want audio_decode output buffer size to be no more than AUDIO_DECODE_OUTPUT_BUFFER.
+    // it will be 16-bit and rounded up to next power of 2 in channels
+    static const char rounded_up_channels_shift[] = {0,0,1,2,2,3,3,3,3};
+    unsigned int max_buffer = AUDIO_DECODE_OUTPUT_BUFFER * (m_InputChannels * m_BitsPerSample) >> (rounded_up_channels_shift[m_InputChannels] + 4);
+
     unsigned int remaining = demuxer_samples-demuxer_samples_sent;
-    unsigned int samples_space = omx_buffer->nAllocLen/pitch;
+    unsigned int samples_space = std::min(max_buffer, omx_buffer->nAllocLen)/pitch;
     unsigned int samples = std::min(remaining, samples_space);
 
     omx_buffer->nFilledLen = samples * pitch;
@@ -1275,6 +1292,33 @@ float COMXAudio::GetMaxLevel(double &pts)
   return (float)param.nMaxSample * (100.0f / (1<<15));
 }
 
+float COMXAudio::GetMaxLevel(double &pts)
+{
+  CSingleLock lock (m_critSection);
+
+  if(!m_Initialized)
+    return 0;
+
+  OMX_CONFIG_BRCMAUDIOMAXSAMPLE param;
+  OMX_INIT_STRUCTURE(param);
+
+  if(m_omx_decoder.IsInitialized())
+  {
+    param.nPortIndex = m_omx_decoder.GetInputPort();
+
+    OMX_ERRORTYPE omx_err = m_omx_decoder.GetConfig(OMX_IndexConfigBrcmAudioMaxSample, &param);
+
+    if(omx_err != OMX_ErrorNone)
+    {
+      CLog::Log(LOGERROR, "%s::%s - error getting OMX_IndexConfigBrcmAudioMaxSample error 0x%08x\n",
+        CLASSNAME, __func__, omx_err);
+      return 0;
+    }
+  }
+  pts = FromOMXTime(param.nTimeStamp);
+  return (float)param.nMaxSample * (100.0f / (1<<15));
+}
+
 void COMXAudio::SubmitEOS()
 {
   CSingleLock lock (m_critSection);
@@ -1284,6 +1328,8 @@ void COMXAudio::SubmitEOS()
 
   m_submitted_eos = true;
   m_failed_eos = false;
+
+  m_submitted_eos = true;
 
   OMX_ERRORTYPE omx_err = OMX_ErrorNone;
   OMX_BUFFERHEADERTYPE *omx_buffer = m_omx_decoder.GetInputBuffer(1000);
@@ -1417,6 +1463,7 @@ void COMXAudio::PrintChannels(OMX_AUDIO_CHANNELTYPE eChannelMapping[])
         break;
     }
   }
+  CLog::Log(LOGINFO, "%s::%s", CLASSNAME, __func__);
 }
 
 void COMXAudio::PrintPCM(OMX_AUDIO_PARAM_PCMMODETYPE *pcm, std::string direction)

@@ -591,6 +591,7 @@ bool COMXVideo::Open(CDVDStreamInfo &hints, OMXClock *clock, EDEINTERLACEMODE de
   }
 
 
+
   // broadcom omx entension:
   // When enabled, the timestamp fifo mode will change the way incoming timestamps are associated with output images.
   // In this mode the incoming timestamps get used without re-ordering on output images.
@@ -673,6 +674,7 @@ bool COMXVideo::Open(CDVDStreamInfo &hints, OMXClock *clock, EDEINTERLACEMODE de
 
   return true;
 }
+
 
 
 void COMXVideo::Close()

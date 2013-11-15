@@ -24,6 +24,8 @@
 #include "libavutil/arm/cpu.h"
 #include "libavcodec/h264dsp.h"
 
+int ff_h264_find_start_code_candidate_armv6(const uint8_t *buf, int size);
+
 void ff_h264_v_loop_filter_luma_neon(uint8_t *pix, int stride, int alpha,
                                      int beta, int8_t *tc0);
 void ff_h264_h_loop_filter_luma_neon(uint8_t *pix, int stride, int alpha,
