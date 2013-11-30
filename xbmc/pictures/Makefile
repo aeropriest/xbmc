@@ -2,9 +2,14 @@ SRCS=GUIDialogPictureInfo.cpp \
      GUIViewStatePictures.cpp \
      GUIWindowPictures.cpp \
      GUIWindowSlideShow.cpp \
+     PictureDatabase.cpp \
      Picture.cpp \
+     Face.cpp \
+     PictureDbUrl.cpp \
+     PictureAlbum.cpp \
      PictureInfoLoader.cpp \
-     PictureInfoTag.cpp \
+     tags/PictureInfoTag.cpp \
+     infoscanner/PictureInfoScanner.cpp \
      PictureThumbLoader.cpp \
      SlideShowPicture.cpp \
      

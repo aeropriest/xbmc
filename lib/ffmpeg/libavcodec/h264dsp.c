@@ -174,7 +174,7 @@ void ff_h264dsp_init(H264DSPContext *c, const int bit_depth, const int chroma_fo
         H264_DSP(8);
         break;
     }
-    c->h264_find_start_code_candidate = h264_find_start_code_candidate_c;
+    //c->h264_find_start_code_candidate = h264_find_start_code_candidate_c;
 
     if (ARCH_ARM) ff_h264dsp_init_arm(c, bit_depth, chroma_format_idc);
     if (HAVE_ALTIVEC) ff_h264dsp_init_ppc(c, bit_depth, chroma_format_idc);

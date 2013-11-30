@@ -1,6 +1,8 @@
 SRCS=AddonsOperations.cpp \
      ApplicationOperations.cpp \
      AudioLibrary.cpp \
+     PictureLibrary.cpp \
+     ContactLibrary.cpp \
      FavouritesOperations.cpp \
      FileItemHandler.cpp \
      FileOperations.cpp \
