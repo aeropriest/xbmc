@@ -84,6 +84,10 @@ namespace MUSIC_INFO
 {
   class CMusicInfoScanner;
 }
+namespace PICTURE_INFO
+{
+  class CPictureInfoScanner;
+}
 
 #define VOLUME_MINIMUM 0.0f        // -60dB
 #define VOLUME_MAXIMUM 1.0f        // 0dB
@@ -238,8 +242,11 @@ public:
   bool IsMusicScanning() const;
   bool IsVideoScanning() const;
 
+  void StopPictureScan();
+  bool IsPictureScanning() const;
   void StartVideoCleanup();
 
+  void StartPictureScan(const CStdString &path, int flags = 0);
   void StartVideoScan(const CStdString &path, bool scanAll = false);
   void StartMusicScan(const CStdString &path, int flags = 0);
   void StartMusicAlbumScan(const CStdString& strDirectory, bool refresh=false);
@@ -373,6 +380,9 @@ protected:
 #if defined(TARGET_DARWIN_IOS)
   friend class CWinEventsIOS;
 #endif
+#if defined(TARGET_ANDROID)
+  friend class CWinEventsAndroid;
+#endif
   // screensaver
   bool m_bScreenSave;
   ADDON::AddonPtr m_screenSaver;
@@ -426,6 +436,7 @@ protected:
   VIDEO::CVideoInfoScanner *m_videoInfoScanner;
   MUSIC_INFO::CMusicInfoScanner *m_musicInfoScanner;
 
+  PICTURE_INFO::CPictureInfoScanner *m_pictureInfoScanner;
   bool m_muted;
   float m_volumeLevel;
 

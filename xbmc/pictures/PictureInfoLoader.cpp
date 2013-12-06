@@ -19,9 +19,11 @@
  */
 
 #include "PictureInfoLoader.h"
-#include "PictureInfoTag.h"
+#include "tags/PictureInfoTag.h"
 #include "settings/Settings.h"
 #include "FileItem.h"
+
+using namespace PICTURE_INFO;
 
 CPictureInfoLoader::CPictureInfoLoader()
 {
@@ -50,34 +52,6 @@ void CPictureInfoLoader::OnLoaderStart()
 
 bool CPictureInfoLoader::LoadItem(CFileItem* pItem)
 {
-  bool result  = LoadItemCached(pItem);
-       result |= LoadItemLookup(pItem);
-
-  return result;
-}
-
-bool CPictureInfoLoader::LoadItemCached(CFileItem* pItem)
-{
-  if (!pItem->IsPicture() || pItem->IsZIP() || pItem->IsRAR() || pItem->IsCBR() || pItem->IsCBZ() || pItem->IsInternetStream() || pItem->IsVideo())
-    return false;
-
-  if (pItem->HasPictureInfoTag())
-    return true;
-
-  // Check the cached item
-  CFileItemPtr mapItem = (*m_mapFileItems)[pItem->GetPath()];
-  if (mapItem && mapItem->m_dateTime==pItem->m_dateTime && mapItem->HasPictureInfoTag())
-  { // Query map if we previously cached the file on HD
-    *pItem->GetPictureInfoTag() = *mapItem->GetPictureInfoTag();
-    pItem->SetArt("thumb", mapItem->GetArt("thumb"));
-    return true;
-  }
-
-  return true;
-}
-
-bool CPictureInfoLoader::LoadItemLookup(CFileItem* pItem)
-{
   if (m_pProgressCallback && !pItem->m_bIsFolder)
     m_pProgressCallback->SetProgressAdvance();
 
@@ -85,7 +59,15 @@ bool CPictureInfoLoader::LoadItemLookup(CFileItem* pItem)
     return false;
 
   if (pItem->HasPictureInfoTag())
-    return false;
+    return true;
+  // first check the cached item
+  CFileItemPtr mapItem = (*m_mapFileItems)[pItem->GetPath()];
+  if (mapItem && mapItem->m_dateTime==pItem->m_dateTime && mapItem->HasPictureInfoTag())
+  { // Query map if we previously cached the file on HD
+    *pItem->GetPictureInfoTag() = *mapItem->GetPictureInfoTag();
+    pItem->SetArt("thumb", mapItem->GetArt("thumb"));
+    return true;
+  }
 
   if (m_loadTags)
   { // Nothing found, load tag from file

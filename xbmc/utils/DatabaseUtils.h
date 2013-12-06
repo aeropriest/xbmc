@@ -122,6 +122,24 @@ typedef enum {
   FieldBandFormed,
   FieldDisbanded,
   FieldDied
+  
+  FieldOrientation,
+  FieldTakenOn,
+  FieldPictureCount,
+  FieldPictureAlbum,
+  FieldPictureAlbumId,
+  FieldFace,
+  FieldLocation,
+  
+  //Contacts fields
+  FieldFirstName,
+  FieldLastName,
+  FieldContact,
+  FieldPhones,
+  FieldEmails,
+  FieldProfessional,
+  FieldDates,
+  FieldRelations
 } Field;
 
 typedef std::set<Field> Fields;
@@ -138,7 +156,12 @@ typedef enum {
   MediaTypeMusicVideo,
   MediaTypeMovie,
   MediaTypeTvShow,
-  MediaTypeEpisode
+  MediaTypeEpisode,
+  MediaTypePicture,
+  MediaTypeContact,
+  MediaTypePictureAlbum,
+  MediaTypeFace,
+  MediaTypeLocation
 } MediaType;
 
 typedef enum {

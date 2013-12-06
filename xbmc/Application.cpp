@@ -165,6 +165,7 @@
 #include "peripherals/dialogs/GUIDialogPeripheralSettings.h"
 #include "peripherals/devices/PeripheralImon.h"
 #include "music/infoscanner/MusicInfoScanner.h"
+#include "pictures/infoscanner/PictureInfoScanner.h"
 
 // Windows includes
 #include "guilib/GUIWindowManager.h"
@@ -355,6 +356,7 @@ using namespace MEDIA_DETECT;
 using namespace PLAYLIST;
 using namespace VIDEO;
 using namespace MUSIC_INFO;
+using namespace PICTURE_INFO;
 #ifdef HAS_EVENT_SERVER
 using namespace EVENTSERVER;
 #endif
@@ -376,15 +378,16 @@ using namespace XbmcThreads;
 
 //extern IDirectSoundRenderer* m_pAudioDecoder;
 CApplication::CApplication(void)
-  : m_pPlayer(new CApplicationPlayer)
-  , m_itemCurrentFile(new CFileItem)
-  , m_stackFileItemToUpdate(new CFileItem)
-  , m_progressTrackingVideoResumeBookmark(*new CBookmark)
-  , m_progressTrackingItem(new CFileItem)
-  , m_videoInfoScanner(new CVideoInfoScanner)
-  , m_musicInfoScanner(new CMusicInfoScanner)
-  , m_seekHandler(new CSeekHandler)
-  , m_playerController(new CPlayerController)
+: m_pPlayer(new CApplicationPlayer)
+, m_itemCurrentFile(new CFileItem)
+, m_stackFileItemToUpdate(new CFileItem)
+, m_progressTrackingVideoResumeBookmark(*new CBookmark)
+, m_progressTrackingItem(new CFileItem)
+, m_videoInfoScanner(new CVideoInfoScanner)
+, m_musicInfoScanner(new CMusicInfoScanner)
+, m_pictureInfoScanner(new CPictureInfoScanner)
+, m_seekHandler(new CSeekHandler)
+, m_playerController(new CPlayerController)
 {
   m_network = NULL;
   TiXmlBase::SetCondenseWhiteSpace(false);
@@ -443,6 +446,7 @@ CApplication::~CApplication(void)
 {
   delete m_musicInfoScanner;
   delete m_videoInfoScanner;
+  delete m_pictureInfoScanner;
   delete &m_progressTrackingVideoResumeBookmark;
 #ifdef HAS_DVD_DRIVE
   delete m_Autorun;
@@ -3455,8 +3459,10 @@ void CApplication::Stop(int exitCode)
     if (m_videoInfoScanner->IsScanning())
       m_videoInfoScanner->Stop();
 
-    CApplicationMessenger::Get().Cleanup();
+    if (m_pictureInfoScanner->IsScanning())
+      m_pictureInfoScanner->Stop();
 
+    CApplicationMessenger::Get().Cleanup();
     StopPVRManager();
     StopServices();
     //Sleep(5000);
@@ -4632,6 +4638,8 @@ void CApplication::CheckShutdown()
   if (m_videoInfoScanner->IsScanning())
     resetTimer = true;
 
+  if (m_pictureInfoScanner->IsScanning())
+    resetTimer = true;
   if (g_windowManager.IsWindowActive(WINDOW_DIALOG_PROGRESS)) // progress dialog is onscreen
     resetTimer = true;
 
@@ -5549,6 +5557,35 @@ void CApplication::StartVideoScan(const CStdString &strDirectory, bool scanAll)
   m_videoInfoScanner->Start(strDirectory,scanAll);
 }
 
+bool CApplication::IsPictureScanning() const
+{
+  return m_pictureInfoScanner->IsScanning();
+}
+
+void CApplication::StopPictureScan()
+{
+  if (m_pictureInfoScanner->IsScanning())
+    m_pictureInfoScanner->Stop();
+}
+
+void CApplication::StartPictureScan(const CStdString &strDirectory, int flags)
+{
+  if (m_pictureInfoScanner->IsScanning())
+    return;
+  
+  if (!flags)
+  { // setup default flags
+    if (CSettings::Get().GetBool("picturelibrary.downloadinfo"))
+      flags |= CPictureInfoScanner::SCAN_ONLINE;
+    if (CSettings::Get().GetBool("picturelibrary.backgroundupdate"))
+      flags |= CPictureInfoScanner::SCAN_BACKGROUND;
+  }
+  
+  if (!(flags & CPictureInfoScanner::SCAN_BACKGROUND))
+    m_pictureInfoScanner->ShowDialog(true);
+  
+  m_pictureInfoScanner->Start(strDirectory, flags);
+}
 void CApplication::StartMusicScan(const CStdString &strDirectory, int flags)
 {
   if (m_musicInfoScanner->IsScanning())

@@ -36,7 +36,7 @@
 #include "utils/SystemInfo.h"
 #include "guilib/GUITextBox.h"
 #include "pictures/GUIWindowSlideShow.h"
-#include "pictures/PictureInfoTag.h"
+#include "pictures/tags/PictureInfoTag.h"
 #include "music/tags/MusicInfoTag.h"
 #include "guilib/IGUIContainer.h"
 #include "guilib/GUIWindowManager.h"
@@ -1024,7 +1024,7 @@ int CGUIInfoManager::TranslateSingleString(const CStdString &strCondition)
         if (prop.name == slideshow[i].str)
           return slideshow[i].val;
       }
-      return CPictureInfoTag::TranslateString(prop.name);
+      return PICTURE_INFO::CPictureInfoTag::TranslateString(prop.name);
     }
     else if (cat.name == "container")
     {

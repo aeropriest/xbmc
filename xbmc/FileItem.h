@@ -52,12 +52,28 @@ namespace PVR
   class CPVRRecording;
   class CPVRTimerInfoTag;
 }
-class CPictureInfoTag;
+namespace PICTURE_INFO {
+  class CPictureInfoTag;
+}
+
+namespace CONTACT_INFO {
+  class CContactInfoTag;
+}
+
+class CContact;
+class CPhone;
+class CEmail;
 
 class CAlbum;
 class CArtist;
 class CSong;
 class CGenre;
+
+class CPictureAlbum;
+class CFace;
+class CPicture;
+class CLocation;
+
 
 class CURL;
 
@@ -96,6 +112,19 @@ public:
   CFileItem(const CStdString &path, const CAlbum& album);
   CFileItem(const CArtist& artist);
   CFileItem(const CGenre& genre);
+  CFileItem(const CPicture& picture);
+  CFileItem(const CContact& contact);
+  CFileItem(const CPhone& phone);
+  CFileItem(const CEmail& email);
+  CFileItem(const CStdString &path, const CPictureAlbum& album);
+  CFileItem(const CStdString &path, const CContact& contact);
+  
+  /*
+   CFileItem(const CFace& face);
+   CFileItem(const CLocation& location);
+   */
+  CFileItem(const PICTURE_INFO::CPictureInfoTag& picture);
+  CFileItem(const CONTACT_INFO::CContactInfoTag& contact);
   CFileItem(const MUSIC_INFO::CMusicInfoTag& music);
   CFileItem(const CVideoInfoTag& movie);
   CFileItem(const EPG::CEpgInfoTag& tag);
@@ -104,6 +133,7 @@ public:
   CFileItem(const PVR::CPVRTimerInfoTag& timer);
   CFileItem(const CMediaSource& share);
   virtual ~CFileItem(void);
+  CFileItem(const CMediaSource& share);  virtual ~CFileItem(void);
   virtual CGUIListItem *Clone() const { return new CFileItem(*this); };
 
   const CStdString &GetPath() const { return m_strPath; };
@@ -136,6 +166,7 @@ public:
   bool IsPicture() const;
   bool IsLyrics() const;
 
+  bool IsContact() const;
   /*!
    \brief Check whether an item is an audio item. Note that this returns true for
     anything with a music info tag, so that may include eg. folders.
@@ -179,6 +210,8 @@ public:
   bool IsStack() const;
   bool IsMultiPath() const;
   bool IsMusicDb() const;
+  bool IsContactDb() const;
+  bool IsPictureDb() const;
   bool IsVideoDb() const;
   bool IsEPG() const;
   bool IsPVRChannel() const;
@@ -227,6 +260,30 @@ public:
     return m_musicInfoTag;
   }
 
+  inline bool HasPictureInfoTag() const
+  {
+    return m_pictureInfoTag != NULL;
+  }
+  
+  PICTURE_INFO::CPictureInfoTag* GetPictureInfoTag();
+  
+  inline const PICTURE_INFO::CPictureInfoTag* GetPictureInfoTag() const
+  {
+    return m_pictureInfoTag;
+  }
+
+  inline bool HasContactInfoTag() const
+  {
+    return m_contactInfoTag != NULL;
+  }
+  
+  CONTACT_INFO::CContactInfoTag* GetContactInfoTag();
+  
+  inline const CONTACT_INFO::CContactInfoTag* GetContactInfoTag() const
+  {
+    return m_contactInfoTag;
+  }
+  
   inline bool HasVideoInfoTag() const
   {
     return m_videoInfoTag != NULL;
@@ -343,6 +400,10 @@ public:
   // Gets the user thumb, if it exists
   CStdString GetUserMusicThumb(bool alwaysCheckRemote = false, bool fallbackToFolder = false) const;
 
+  // Gets the user thumb, if it exists
+  CStdString GetUserPictureThumb(bool alwaysCheckRemote = false, bool fallbackToFolder = false) const;
+  // Gets the user thumb, if it exists
+  CStdString GetUserContactThumb(bool alwaysCheckRemote = false, bool fallbackToFolder = false) const;
   /*! \brief Get the path where we expect local metadata to reside.
    For a folder, this is just the existing path (eg tvshow folder)
    For a file, this is the parent path, with exceptions made for VIDEO_TS and BDMV files
@@ -362,6 +423,8 @@ public:
 
   virtual bool LoadMusicTag();
 
+  virtual bool LoadContactTag();
+  virtual bool LoadPictureTag();
   /* Returns the content type of this item if known */
   const CStdString& GetMimeType() const { return m_mimetype; }
 
@@ -410,7 +473,20 @@ public:
    \param song song details to use and set
    */
   void SetFromSong(const CSong &song);
-
+  /*! \brief Sets details using the information from the CAlbum object
+   Sets the album in the music info tag and uses its information to set the
+   label and album-specific properties.
+   \param album album details to use and set
+   */
+  void SetFromPictureAlbum(const CPictureAlbum &album);
+  /*! \brief Sets details using the information from the CSong object
+   Sets the song in the music info tag and uses its information to set the
+   label, path, song-specific properties and artwork.
+   \param song song details to use and set
+   */
+  void SetFromPicture(const CPicture &picture);
+  void SetFromContact(const CContact &contact);
+  
   bool m_bIsShareOrDrive;    ///< is this a root share/drive
   int m_iDriveType;     ///< If \e m_bIsShareOrDrive is \e true, use to get the share type. Types see: CMediaSource::m_iDriveType
   CDateTime m_dateTime;             ///< file creation date & time
@@ -437,6 +513,8 @@ private:
   CStdString m_mimetype;
   CStdString m_extrainfo;
   MUSIC_INFO::CMusicInfoTag* m_musicInfoTag;
+  CONTACT_INFO::CContactInfoTag* m_contactInfoTag;
+  PICTURE_INFO::CPictureInfoTag* m_pictureInfoTag;
   CVideoInfoTag* m_videoInfoTag;
   EPG::CEpgInfoTag* m_epgInfoTag;
   PVR::CPVRChannel* m_pvrChannelInfoTag;

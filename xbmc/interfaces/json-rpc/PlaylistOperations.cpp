@@ -27,8 +27,9 @@
 #include "GUIUserMessages.h"
 #include "ApplicationMessenger.h"
 #include "pictures/GUIWindowSlideShow.h"
-#include "pictures/PictureInfoTag.h"
+#include "pictures/tags/PictureInfoTag.h"
 
+using namespace PICTURE_INFO;
 using namespace JSONRPC;
 using namespace PLAYLIST;
 using namespace std;
@@ -97,7 +98,7 @@ JSONRPC_STATUS CPlaylistOperations::GetItems(const CStdString &method, ITranspor
 
 bool CPlaylistOperations::CheckMediaParameter(int playlist, const CVariant &parameterObject)
 {
-  if (parameterObject["item"].isMember("media") && parameterObject["item"]["media"].asString().compare("files") != 0)
+  if (parameterObject["item"].isMember("media"))
   {
     if (playlist == PLAYLIST_VIDEO && parameterObject["item"]["media"].asString().compare("video") != 0)
       return false;

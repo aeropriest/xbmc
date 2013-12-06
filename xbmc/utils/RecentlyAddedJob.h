@@ -25,6 +25,7 @@ enum ERecentlyAddedFlag
 {
   Audio = 0x1,
   Video = 0x2,
+  Picture = 0x3,
   Totals = 0x4
 };
 
@@ -32,7 +33,9 @@ class CRecentlyAddedJob : public CJob
 {
 public:
   CRecentlyAddedJob(int flag);
-  bool UpdateVideo();
+  bool UpdateMovies();
+  bool UpdateVideos();
+  bool UpdatePicture();
   bool UpdateMusic();
   bool UpdateTotal();
   virtual bool DoWork();

@@ -36,8 +36,9 @@
 #include "XBMCOperations.h"
 #include "ApplicationOperations.h"
 #include "PVROperations.h"
-#include "ProfilesOperations.h"
 #include "FavouritesOperations.h"
+#include "PictureLibrary.h"
+#include "ContactLibrary.h"
 
 using namespace std;
 using namespace JSONRPC;
@@ -95,7 +96,40 @@ JsonRpcMethodMap CJSONServiceDescription::m_methodMaps[] = {
   { "Files.GetFileDetails",                         CFileOperations::GetFileDetails },
   { "Files.PrepareDownload",                        CFileOperations::PrepareDownload },
   { "Files.Download",                               CFileOperations::Download },
+  
+  // Picture Library
+  { "PictureLibrary.GetFaces",                      CPictureLibrary::GetFaces },
+  { "PictureLibrary.GetFaceDetails",                CPictureLibrary::GetFaceDetails },
+  { "PictureLibrary.AddPictureAlbum",              CPictureLibrary::AddPictureAlbum },
+  { "PictureLibrary.AddVideoAlbum",              CPictureLibrary::AddVideoAlbum },
+  { "PictureLibrary.AddPicture",              CPictureLibrary::AddPicture },
+  { "PictureLibrary.AddVideo",              CPictureLibrary::AddVideo },
+  { "PictureLibrary.GetPictureAlbums",              CPictureLibrary::GetPictureAlbums },
+  { "PictureLibrary.GetPictureAlbumDetails",        CPictureLibrary::GetPictureAlbumDetails },
+  { "PictureLibrary.GetPictures",                   CPictureLibrary::GetPictures },
+  { "PictureLibrary.GetPictureDetails",             CPictureLibrary::GetPictureDetails },
+  { "PictureLibrary.GetRecentlyAddedPictureAlbums", CPictureLibrary::GetRecentlyAddedPictureAlbums },
+  { "PictureLibrary.GetRecentlyAddedPictures",      CPictureLibrary::GetRecentlyAddedPictures },
+  { "PictureLibrary.GetVideoAlbums",              CPictureLibrary::GetVideoAlbums },
+  { "PictureLibrary.GetVideoAlbumDetails",        CPictureLibrary::GetVideoAlbumDetails },
+  { "PictureLibrary.GetVideos",                   CPictureLibrary::GetVideos },
+  { "PictureLibrary.GetVideoDetails",             CPictureLibrary::GetVideoDetails },
+  { "PictureLibrary.GetRecentlyAddedVideoAlbums", CPictureLibrary::GetRecentlyAddedVideoAlbums },
+  { "PictureLibrary.GetRecentlyAddedVideos",      CPictureLibrary::GetRecentlyAddedVideos },
 
+  { "PictureLibrary.GetLocations",                  CPictureLibrary::GetLocations },
+  { "PictureLibrary.SetFaceDetails",                CPictureLibrary::SetFaceDetails },
+  { "PictureLibrary.SetPictureAlbumDetails",        CPictureLibrary::SetPictureAlbumDetails },
+  { "PictureLibrary.SetPictureDetails",             CPictureLibrary::SetPictureDetails },
+  { "PictureLibrary.Scan",                          CPictureLibrary::Scan },
+  { "PictureLibrary.Export",                        CPictureLibrary::Export },
+  { "PictureLibrary.Clean",                         CPictureLibrary::Clean },
+ 
+// Contact Library
+  { "ContactLibrary.AddContact",                    CContactLibrary::AddContact },
+  { "ContactLibrary.GetContacts",                    CContactLibrary::GetContacts },
+  { "ContactLibrary.GetContactDetails",              CContactLibrary::GetContactDetails },
+    
 // Music Library
   { "AudioLibrary.GetArtists",                      CAudioLibrary::GetArtists },
   { "AudioLibrary.GetArtistDetails",                CAudioLibrary::GetArtistDetails },
@@ -116,6 +150,10 @@ JsonRpcMethodMap CJSONServiceDescription::m_methodMaps[] = {
   { "AudioLibrary.Clean",                           CAudioLibrary::Clean },
 
 // Video Library
+  { "VideoLibrary.GetVideos",                       CVideoLibrary::GetVideos },
+  { "VideoLibrary.GetVideoDetails",                 CVideoLibrary::GetVideoDetails },
+  { "VideoLibrary.GetStreams",                      CVideoLibrary::GetStreams },
+  { "VideoLibrary.GetStreamDetails",                CVideoLibrary::GetStreamDetails },
   { "VideoLibrary.GetGenres",                       CVideoLibrary::GetGenres },
   { "VideoLibrary.GetMovies",                       CVideoLibrary::GetMovies },
   { "VideoLibrary.GetMovieDetails",                 CVideoLibrary::GetMovieDetails },

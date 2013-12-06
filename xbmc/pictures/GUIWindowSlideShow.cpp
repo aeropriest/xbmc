@@ -45,7 +45,7 @@
 #include "utils/log.h"
 #include "utils/TimeUtils.h"
 #include "interfaces/AnnouncementManager.h"
-#include "pictures/PictureInfoTag.h"
+#include "pictures/tags/PictureInfoTag.h"
 #include "pictures/PictureThumbLoader.h"
 
 using namespace XFILE;
@@ -758,7 +758,7 @@ bool CGUIWindowSlideShow::OnAction(const CAction &action)
 {
   switch (action.GetID())
   {
-  case ACTION_SHOW_CODEC:
+    case ACTION_SHOW_CODEC:
     {
       CGUIDialogPictureInfo *pictureInfo = (CGUIDialogPictureInfo *)g_windowManager.GetWindow(WINDOW_DIALOG_PICTURE_INFO);
       if (pictureInfo)
@@ -767,130 +767,130 @@ bool CGUIWindowSlideShow::OnAction(const CAction &action)
         pictureInfo->DoModal();
       }
     }
-    break;
-
-  case ACTION_PREVIOUS_MENU:
-  case ACTION_NAV_BACK:
-  case ACTION_STOP:
-    if (m_slides->Size())
-      AnnouncePlayerStop(m_slides->Get(m_iCurrentSlide));
-    g_windowManager.PreviousWindow();
-    break;
-
-  case ACTION_NEXT_PICTURE:
-      ShowNext();
-    break;
-
-  case ACTION_PREV_PICTURE:
-      ShowPrevious();
-    break;
-
-  case ACTION_MOVE_RIGHT:
-    if (m_iZoomFactor == 1 || !m_Image[m_iCurrentPic].m_bCanMoveHorizontally)
-      ShowNext();
-    else
-      Move(PICTURE_MOVE_AMOUNT, 0);
-    break;
-
-  case ACTION_MOVE_LEFT:
-    if (m_iZoomFactor == 1 || !m_Image[m_iCurrentPic].m_bCanMoveHorizontally)
-      ShowPrevious();
-    else
-      Move( -PICTURE_MOVE_AMOUNT, 0);
-    break;
-
-  case ACTION_MOVE_DOWN:
-    Move(0, PICTURE_MOVE_AMOUNT);
-    break;
-
-  case ACTION_MOVE_UP:
-    Move(0, -PICTURE_MOVE_AMOUNT);
-    break;
-
-  case ACTION_PAUSE:
-  case ACTION_PLAYER_PLAY:
-    if (m_slides->Size() == 0)
       break;
-    if (m_slides->Get(m_iCurrentSlide)->IsVideo())
-    {
-      if (!m_bPlayingVideo)
-      {
-        if (m_bSlideShow)
-        {
-          SetDirection(1);
-          m_bPause = false;
-        }
-        PlayVideo();
-      }
-    }
-    else if (!m_bSlideShow || m_bPause)
-    {
-      m_bSlideShow = true;
-      m_bPause = false;
-      SetDirection(1);
-      if (m_Image[m_iCurrentPic].IsLoaded())
-      {
-        CSlideShowPic::DISPLAY_EFFECT effect = GetDisplayEffect(m_iCurrentSlide);
-        if (m_Image[m_iCurrentPic].DisplayEffectNeedChange(effect))
-          m_Image[m_iCurrentPic].Reset(effect);
-      }
-      AnnouncePlayerPlay(m_slides->Get(m_iCurrentSlide));
-    }
-    else if (action.GetID() == ACTION_PAUSE)
-    {
-      m_bPause = true;
-      AnnouncePlayerPause(m_slides->Get(m_iCurrentSlide));
-    }
-    break;
-
-  case ACTION_ZOOM_OUT:
-    Zoom(m_iZoomFactor - 1);
-    break;
-
-  case ACTION_ZOOM_IN:
-    Zoom(m_iZoomFactor + 1);
-    break;
-
-  case ACTION_GESTURE_SWIPE_UP:
-  case ACTION_GESTURE_SWIPE_DOWN:
-    if (m_iZoomFactor == 1 || !m_Image[m_iCurrentPic].m_bCanMoveVertically)
-    {
-      bool swipeOnLeft = action.GetAmount() < g_graphicsContext.GetWidth() / 2;
-      bool swipeUp = action.GetID() == ACTION_GESTURE_SWIPE_UP;
-      if (swipeUp == swipeOnLeft)
-        Rotate(90.0f);
+      
+    case ACTION_PREVIOUS_MENU:
+    case ACTION_NAV_BACK:
+    case ACTION_STOP:
+      if (m_slides->Size())
+        AnnouncePlayerStop(m_slides->Get(m_iCurrentSlide));
+      g_windowManager.PreviousWindow();
+      break;
+      
+    case ACTION_NEXT_PICTURE:
+      ShowNext();
+      break;
+      
+    case ACTION_PREV_PICTURE:
+      ShowPrevious();
+      break;
+      
+    case ACTION_MOVE_RIGHT:
+      if (m_iZoomFactor == 1 || !m_Image[m_iCurrentPic].m_bCanMoveHorizontally)
+        ShowNext();
       else
-        Rotate(-90.0f);
-    }
-    break;
-
-  case ACTION_ROTATE_PICTURE_CW:
-    Rotate(90.0f);
-    break;
-
-  case ACTION_ROTATE_PICTURE_CCW:
-    Rotate(-90.0f);
-    break;
-
-  case ACTION_ZOOM_LEVEL_NORMAL:
-  case ACTION_ZOOM_LEVEL_1:
-  case ACTION_ZOOM_LEVEL_2:
-  case ACTION_ZOOM_LEVEL_3:
-  case ACTION_ZOOM_LEVEL_4:
-  case ACTION_ZOOM_LEVEL_5:
-  case ACTION_ZOOM_LEVEL_6:
-  case ACTION_ZOOM_LEVEL_7:
-  case ACTION_ZOOM_LEVEL_8:
-  case ACTION_ZOOM_LEVEL_9:
-    Zoom((action.GetID() - ACTION_ZOOM_LEVEL_NORMAL) + 1);
-    break;
-
-  case ACTION_ANALOG_MOVE:
-    Move(action.GetAmount()*PICTURE_MOVE_AMOUNT_ANALOG, -action.GetAmount(1)*PICTURE_MOVE_AMOUNT_ANALOG);
-    break;
-
-  default:
-    return CGUIWindow::OnAction(action);
+        Move(PICTURE_MOVE_AMOUNT, 0);
+      break;
+      
+    case ACTION_MOVE_LEFT:
+      if (m_iZoomFactor == 1 || !m_Image[m_iCurrentPic].m_bCanMoveHorizontally)
+        ShowPrevious();
+      else
+        Move( -PICTURE_MOVE_AMOUNT, 0);
+      break;
+      
+    case ACTION_MOVE_DOWN:
+      Move(0, PICTURE_MOVE_AMOUNT);
+      break;
+      
+    case ACTION_MOVE_UP:
+      Move(0, -PICTURE_MOVE_AMOUNT);
+      break;
+      
+    case ACTION_PAUSE:
+    case ACTION_PLAYER_PLAY:
+      if (m_slides->Size() == 0)
+        break;
+      if (m_slides->Get(m_iCurrentSlide)->IsVideo())
+      {
+        if (!m_bPlayingVideo)
+        {
+          if (m_bSlideShow)
+          {
+            SetDirection(1);
+            m_bPause = false;
+          }
+          PlayVideo();
+        }
+      }
+      else if (!m_bSlideShow || m_bPause)
+      {
+        m_bSlideShow = true;
+        m_bPause = false;
+        SetDirection(1);
+        if (m_Image[m_iCurrentPic].IsLoaded())
+        {
+          CSlideShowPic::DISPLAY_EFFECT effect = GetDisplayEffect(m_iCurrentSlide);
+          if (m_Image[m_iCurrentPic].DisplayEffectNeedChange(effect))
+            m_Image[m_iCurrentPic].Reset(effect);
+        }
+        AnnouncePlayerPlay(m_slides->Get(m_iCurrentSlide));
+      }
+      else if (action.GetID() == ACTION_PAUSE)
+      {
+        m_bPause = true;
+        AnnouncePlayerPause(m_slides->Get(m_iCurrentSlide));
+      }
+      break;
+      
+    case ACTION_ZOOM_OUT:
+      Zoom(m_iZoomFactor - 1);
+      break;
+      
+    case ACTION_ZOOM_IN:
+      Zoom(m_iZoomFactor + 1);
+      break;
+      
+    case ACTION_GESTURE_SWIPE_UP:
+    case ACTION_GESTURE_SWIPE_DOWN:
+      if (m_iZoomFactor == 1 || !m_Image[m_iCurrentPic].m_bCanMoveVertically)
+      {
+        bool swipeOnLeft = action.GetAmount() < g_graphicsContext.GetWidth() / 2;
+        bool swipeUp = action.GetID() == ACTION_GESTURE_SWIPE_UP;
+        if (swipeUp == swipeOnLeft)
+          Rotate(90.0f);
+        else
+          Rotate(-90.0f);
+      }
+      break;
+      
+    case ACTION_ROTATE_PICTURE_CW:
+      Rotate(90.0f);
+      break;
+      
+    case ACTION_ROTATE_PICTURE_CCW:
+      Rotate(-90.0f);
+      break;
+      
+    case ACTION_ZOOM_LEVEL_NORMAL:
+    case ACTION_ZOOM_LEVEL_1:
+    case ACTION_ZOOM_LEVEL_2:
+    case ACTION_ZOOM_LEVEL_3:
+    case ACTION_ZOOM_LEVEL_4:
+    case ACTION_ZOOM_LEVEL_5:
+    case ACTION_ZOOM_LEVEL_6:
+    case ACTION_ZOOM_LEVEL_7:
+    case ACTION_ZOOM_LEVEL_8:
+    case ACTION_ZOOM_LEVEL_9:
+      Zoom((action.GetID() - ACTION_ZOOM_LEVEL_NORMAL) + 1);
+      break;
+      
+    case ACTION_ANALOG_MOVE:
+      Move(action.GetAmount()*PICTURE_MOVE_AMOUNT_ANALOG, -action.GetAmount(1)*PICTURE_MOVE_AMOUNT_ANALOG);
+      break;
+      
+    default:
+      return CGUIWindow::OnAction(action);
   }
   return true;
 }
@@ -899,13 +899,13 @@ void CGUIWindowSlideShow::RenderErrorMessage()
 {
   if (!m_bErrorMessage)
     return ;
-
+  
   const CGUIControl *control = GetControl(LABEL_ROW1);
   if (NULL == control || control->GetControlType() != CGUIControl::GUICONTROL_LABEL)
   {
-     return;
+    return;
   }
-
+  
   CGUIFont *pFont = ((CGUILabelControl *)control)->GetLabelInfo().font;
   CGUITextLayout::DrawText(pFont, 0.5f*g_graphicsContext.GetWidth(), 0.5f*g_graphicsContext.GetHeight(), 0xffffffff, 0, g_localizeStrings.Get(747), XBFONT_CENTER_X | XBFONT_CENTER_Y);
 }
@@ -914,31 +914,31 @@ bool CGUIWindowSlideShow::OnMessage(CGUIMessage& message)
 {
   switch ( message.GetMessage() )
   {
-  case GUI_MSG_WINDOW_INIT:
+    case GUI_MSG_WINDOW_INIT:
     {
       m_Resolution = (RESOLUTION) CSettings::Get().GetInt("pictures.displayresolution");
-
+      
       //FIXME: Use GUI resolution for now
       if (0 /*m_Resolution != CDisplaySettings::Get().GetCurrentResolution() && m_Resolution != INVALID && m_Resolution!=AUTORES*/)
         g_graphicsContext.SetVideoResolution(m_Resolution);
       else
         m_Resolution = g_graphicsContext.GetVideoResolution();
-
+      
       CGUIWindow::OnMessage(message);
       if (message.GetParam1() != WINDOW_PICTURES)
         m_ImageLib.Load();
-
+      
       g_windowManager.ShowOverlay(OVERLAY_STATE_HIDDEN);
-
+      
       // turn off slideshow if we only have 1 image
       if (m_slides->Size() <= 1)
         m_bSlideShow = false;
-
+      
       return true;
     }
-    break;
-
-  case GUI_MSG_SHOW_PICTURE:
+      break;
+      
+    case GUI_MSG_SHOW_PICTURE:
     {
       CStdString strFile = message.GetStringParam();
       Reset();
@@ -946,9 +946,9 @@ bool CGUIWindowSlideShow::OnMessage(CGUIMessage& message)
       Add(&item);
       RunSlideShow("", false, false, true, "", false);
     }
-    break;
-
-  case GUI_MSG_START_SLIDESHOW:
+      break;
+      
+    case GUI_MSG_START_SLIDESHOW:
     {
       CStdString strFolder = message.GetStringParam();
       unsigned int iParams = message.GetParam1();
@@ -971,52 +971,52 @@ bool CGUIWindowSlideShow::OnMessage(CGUIMessage& message)
       }
       RunSlideShow(strFolder, bRecursive, bRandom, bNotRandom, beginSlidePath, !bPause);
     }
-    break;
-
+      break;
+      
     case GUI_MSG_PLAYLISTPLAYER_STOPPED:
-      {
-      }
+    {
+    }
       break;
-
+      
     case GUI_MSG_PLAYBACK_STARTED:
-      {
-        if (m_bPlayingVideo)
-          g_windowManager.ActivateWindow(WINDOW_FULLSCREEN_VIDEO);
-      }
+    {
+      if (m_bPlayingVideo)
+        g_windowManager.ActivateWindow(WINDOW_FULLSCREEN_VIDEO);
+    }
       break;
-
+      
     case GUI_MSG_PLAYBACK_STOPPED:
+    {
+      if (m_bPlayingVideo)
       {
-        if (m_bPlayingVideo)
-        {
-          m_bPlayingVideo = false;
-          if (m_bSlideShow)
-            m_bPause = true;
-        }
+        m_bPlayingVideo = false;
+        if (m_bSlideShow)
+          m_bPause = true;
       }
+    }
       break;
-
+      
     case GUI_MSG_PLAYBACK_ENDED:
+    {
+      if (m_bPlayingVideo)
       {
-        if (m_bPlayingVideo)
+        m_bPlayingVideo = false;
+        if (m_bSlideShow)
         {
-          m_bPlayingVideo = false;
-          if (m_bSlideShow)
-          {
-            m_bPause = false;
-            if (m_iCurrentSlide == m_iNextSlide)
-              break;
-            m_Image[m_iCurrentPic].Close();
-            m_iCurrentPic = 1 - m_iCurrentPic;
-            m_iCurrentSlide = m_iNextSlide;
-            m_iNextSlide    = GetNextSlide();
-            AnnouncePlayerPlay(m_slides->Get(m_iCurrentSlide));
-            m_iZoomFactor = 1;
-            m_fZoom = 1.0f;
-            m_fRotate = 0.0f;
-          }
+          m_bPause = false;
+          if (m_iCurrentSlide == m_iNextSlide)
+            break;
+          m_Image[m_iCurrentPic].Close();
+          m_iCurrentPic = 1 - m_iCurrentPic;
+          m_iCurrentSlide = m_iNextSlide;
+          m_iNextSlide    = GetNextSlide();
+          AnnouncePlayerPlay(m_slides->Get(m_iCurrentSlide));
+          m_iZoomFactor = 1;
+          m_fZoom = 1.0f;
+          m_fRotate = 0.0f;
         }
       }
+    }
       break;
   }
   return CGUIWindow::OnMessage(message);

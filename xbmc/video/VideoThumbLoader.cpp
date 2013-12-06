@@ -256,7 +256,8 @@ bool CVideoThumbLoader::LoadItemCached(CFileItem* pItem)
     if (!pItem->GetVideoInfoTag()->m_type.empty()         &&
          pItem->GetVideoInfoTag()->m_type != "movie"      &&
          pItem->GetVideoInfoTag()->m_type != "tvshow"     &&
-         pItem->GetVideoInfoTag()->m_type != "episode"    &&
+         pItem->GetVideoInfoTag()->m_type != "video"    &&
+        pItem->GetVideoInfoTag()->m_type != "episode"    &&
          pItem->GetVideoInfoTag()->m_type != "musicvideo")
     {
       m_videoDatabase->Close();
@@ -296,6 +297,7 @@ bool CVideoThumbLoader::LoadItemLookup(CFileItem* pItem)
      !pItem->GetVideoInfoTag()->m_type.empty()         &&
       pItem->GetVideoInfoTag()->m_type != "movie"      &&
       pItem->GetVideoInfoTag()->m_type != "tvshow"     &&
+      pItem->GetVideoInfoTag()->m_type != "video"     &&
       pItem->GetVideoInfoTag()->m_type != "episode"    &&
       pItem->GetVideoInfoTag()->m_type != "musicvideo")
     return false; // Nothing to do here
