@@ -34,14 +34,40 @@
 #include "guilib/XBTF.h"
 #endif
 
+#include "system_gl.h"
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#include <semaphore.h>
+#include "threads/Thread.h"
+
 using namespace XFILE;
 using namespace std;
 
 class COMXImageFile;
 
-class COMXImage
+class COMXImage : public CThread
 {
+enum TextureAction {TEXTURE_ALLOC, TEXTURE_DELETE };
+
+struct textureinfo {
+  TextureAction action;
+  int width, height;
+  GLuint texture;
+  EGLImageKHR egl_image;
+  sem_t sync;
+  void *parent;
+  const char *filename;
+};
+
+protected:
+  virtual void OnStartup();
+  virtual void OnExit();
+  virtual void Process();
 public:
+  COMXImage();
+  virtual ~COMXImage();
+  void Initialize();
+  void Deinitialize();
   static COMXImageFile *LoadJpeg(const CStdString& texturePath);
   static void CloseJpeg(COMXImageFile *file);
 
@@ -49,6 +75,20 @@ public:
   static bool CreateThumbnailFromSurface(unsigned char* buffer, unsigned int width, unsigned int height,
       unsigned int format, unsigned int pitch, const CStdString& destFile);
   static bool ClampLimits(unsigned int &width, unsigned int &height, unsigned int m_width, unsigned int m_height, bool transposed = false);
+  static bool CreateThumb(const CStdString& srcFile, unsigned int width, unsigned int height, std::string &additional_info, const CStdString& destFile);
+  bool DecodeJpegToTexture(COMXImageFile *file, unsigned int width, unsigned int height, void **userdata);
+  void DestroyTexture(void *userdata);
+  void GetTexture(void *userdata, GLuint *texture);
+private:
+  EGLDisplay m_egl_display;
+  EGLContext m_egl_context;
+
+  void CreateContext();
+  pthread_mutex_t   m_texqueue_mutex;
+  pthread_cond_t    m_texqueue_cond;
+  std::queue <struct textureinfo *> m_texqueue;
+  void AllocTextureInternal(struct textureinfo *tex);
+  void DestroyTextureInternal(struct textureinfo *tex);
 };
 
 class COMXImageFile
@@ -114,4 +154,53 @@ protected:
   CCriticalSection              m_OMXSection;
 };
 
+class COMXImageReEnc
+{
+public:
+  COMXImageReEnc();
+  virtual ~COMXImageReEnc();
+
+  // Required overrides
+  void Close();
+  bool ReEncode(COMXImageFile &srcFile, unsigned int width, unsigned int height, void * &pDestBuffer, unsigned int &nDestSize);
+protected:
+  bool HandlePortSettingChange(unsigned int resize_width, unsigned int resize_height, bool port_settings_changed);
+  // Components
+  COMXCoreComponent             m_omx_decoder;
+  COMXCoreComponent             m_omx_resize;
+  COMXCoreComponent             m_omx_encoder;
+  COMXCoreTunel                 m_omx_tunnel_decode;
+  COMXCoreTunel                 m_omx_tunnel_resize;
+  OMX_BUFFERHEADERTYPE          *m_encoded_buffer;
+  CCriticalSection              m_OMXSection;
+  void                          *m_pDestBuffer;
+  unsigned int                  m_nDestAllocSize;
+};
+
+class COMXTexture
+{
+public:
+  COMXTexture();
+  virtual ~COMXTexture();
+
+  // Required overrides
+  void Close(void);
+  bool Decode(const uint8_t *data, unsigned size, unsigned int width, unsigned int height, void *egl_image, void *egl_display);
+protected:
+  bool HandlePortSettingChange(unsigned int resize_width, unsigned int resize_height, void *egl_image, void *egl_display, bool port_settings_changed);
+
+  // Components
+  COMXCoreComponent m_omx_decoder;
+  COMXCoreComponent m_omx_resize;
+  COMXCoreComponent m_omx_egl_render;
+
+  COMXCoreTunel     m_omx_tunnel_decode;
+  COMXCoreTunel     m_omx_tunnel_egl;
+
+  OMX_BUFFERHEADERTYPE *m_egl_buffer;
+  CCriticalSection              m_OMXSection;
+};
+
+extern COMXImage g_OMXImage;
+>>>>>>> 8792600... more stuff
 #endif

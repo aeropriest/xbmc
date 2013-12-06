@@ -39,6 +39,18 @@ static void int32_to_float_fmul_array8_c(FmtConvertContext *c, float *dst,
         c->int32_to_float_fmul_scalar(&dst[i], &src[i], *mul++, 8);
 }
 
+static void int32_to_float_fmul_scalar_array_c(FmtConvertContext *c, float *dst, const int *src, float *mul, int len){
+    int i;
+    for(i=0; i<len; i+=8)
+        c->int32_to_float_fmul_scalar(dst, src, *mul++, 8);
+}
+
+static void int32_to_float_fmul_scalar_array_c(FmtConvertContext *c, float *dst, const int *src, float *mul, int len){
+    int i;
+    for(i=0; i<len; i+=8)
+        c->int32_to_float_fmul_scalar(dst, src, *mul++, 8);
+}
+
 static av_always_inline int float_to_int16_one(const float *src){
     return av_clip_int16(lrintf(*src));
 }

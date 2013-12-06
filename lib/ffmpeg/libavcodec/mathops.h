@@ -224,4 +224,22 @@ static inline av_const unsigned int ff_sqrt(unsigned int a)
     return b - (a < b * b);
 }
 
+#ifndef MOD_UNLIKELY
+#   define MOD_UNLIKELY(modulus, dividend, divisor, prev_dividend) \
+    do { \
+        if ((prev_dividend) == 0 || (dividend) - (prev_dividend) != (divisor)) \
+            (modulus) = (dividend) % (divisor); \
+        (prev_dividend) = (dividend); \
+    } while (0)
+#endif
+
+#ifndef MOD_UNLIKELY
+#   define MOD_UNLIKELY(modulus, dividend, divisor, prev_dividend) \
+    do { \
+        if ((prev_dividend) == 0 || (dividend) - (prev_dividend) != (divisor)) \
+            (modulus) = (dividend) % (divisor); \
+        (prev_dividend) = (dividend); \
+    } while (0)
+#endif
+
 #endif /* AVCODEC_MATHOPS_H */

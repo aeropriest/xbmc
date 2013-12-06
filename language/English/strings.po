@@ -14449,3 +14449,13 @@ msgstr ""
 msgctxt "#37019"
 msgid "Enables system keys like printscreen, alt-tab and volume keys when in fullscreen"
 msgstr ""
+
+#: system/settings/rbp.xml
+msgctxt "#36042"
+msgid "Dual audio output"
+msgstr ""
+
+#: system/settings/rbp.xml
+msgctxt "#36043"
+msgid "Boost centre channel when downmixing"
+msgstr ""

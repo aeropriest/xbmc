@@ -18,6 +18,7 @@
  *
  */
 
+#include "threads/SystemClock.h"
 #include "system.h"
 
 #if defined (HAS_OMXPLAYER)
@@ -121,6 +122,11 @@
 #include "LangInfo.h"
 #include "URL.h"
 #include "utils/LangCodeExpander.h"
+
+// video not playing from clock, but stepped
+#define TP(speed)  ((speed) < 0 || (speed) > 4*DVD_PLAYSPEED_NORMAL)
+// audio not playing
+#define TPA(speed) ((speed) != DVD_PLAYSPEED_PAUSE && (speed) != DVD_PLAYSPEED_NORMAL)
 
 // video not playing from clock, but stepped
 #define TP(speed)  ((speed) < 0 || (speed) > 4*DVD_PLAYSPEED_NORMAL)
@@ -544,7 +550,7 @@ bool COMXPlayer::OpenFile(const CFileItem &file, const CPlayerOptions &options)
 
 bool COMXPlayer::CloseFile()
 {
-  CLog::Log(LOGDEBUG, "COMXPlayer::CloseFile");
+  CLog::Log(LOGNOTICE, "COMXPlayer::CloseFile");
 
   // unpause the player
   SetPlaySpeed(DVD_PLAYSPEED_NORMAL);
@@ -990,7 +996,7 @@ void COMXPlayer::Process()
 
   if (CDVDInputStream::IMenus* ptr = dynamic_cast<CDVDInputStream::IMenus*>(m_pInputStream))
   {
-    CLog::Log(LOGNOTICE, "OMXPlayer: playing a file with menu's");
+    CLog::Log(LOGNOTICE, "OMXPlayer: playing a dvd with menu's");
     m_PlayerOptions.starttime = 0;
 
     if(m_PlayerOptions.state.size() > 0)
@@ -1106,6 +1112,8 @@ void COMXPlayer::Process()
     SetCaching(CACHESTATE_FLUSH);
 
   EDEINTERLACEMODE current_deinterlace = CMediaSettings::Get().GetCurrentVideoSettings().m_DeinterlaceMode;
+
+  EDEINTERLACEMODE current_deinterlace = g_settings.m_currentVideoSettings.m_DeinterlaceMode;
 
   while (!m_bAbortRequest)
   {
@@ -1914,13 +1922,14 @@ bool COMXPlayer::CheckPlayerInit(COMXCurrentStream& current, unsigned int source
     }
 
     SendPlayerMessage(new CDVDMsgGeneralResync(current.dts, setclock), source);
+    if(setclock)
+      m_clock.Discontinuity(current.dts);
   }
   return false;
 }
 
 void COMXPlayer::UpdateCorrection(DemuxPacket* pkt, double correction)
 {
-  //CLog::Log(LOGINFO,"%s: %d dts:%.0f pts:%.0f s:%d c:%.0f (%d,%d)", __func__, (int)pkt->iStreamId, pkt->dts, pkt->pts, pkt->iSize, correction, pkt->dts==DVD_NOPTS_VALUE, pkt->pts==DVD_NOPTS_VALUE);
   if(pkt->dts != DVD_NOPTS_VALUE) pkt->dts -= correction;
   if(pkt->pts != DVD_NOPTS_VALUE) pkt->pts -= correction;
 }
@@ -3445,6 +3454,8 @@ void COMXPlayer::FlushBuffers(bool queued, double pts, bool accurate)
     m_av_clock.OMXStop();
   m_av_clock.OMXPause();
   m_stepped           = false;
+  m_video_fifo        = 0;
+  m_audio_fifo        = 0;
 
   /* for now, ignore accurate flag as it discards keyframes and causes corrupt frames */
   if(0 && accurate)

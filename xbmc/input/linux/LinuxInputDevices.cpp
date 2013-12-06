@@ -270,8 +270,51 @@ typedef enum
 
 static char remoteStatus = 0xFF; // paired, battery OK
 
+/* [AI]: calibration values */
+int calib_x_d = 1280;
+float calib_x_fact = -1.0f;
+int calib_y_d = 720;
+float calib_y_fact = -1.0f;
+int swap_axes = 0;
+unsigned int click_confines = 7;        ///< number of pixels that the pointer may move while the button is down to trigger a click
+FILE *c_fp;
+/* [AI]: calibration values */
+
 CLinuxInputDevice::CLinuxInputDevice(const std::string fileName, int index)
 {
+  /* [AI]: read calibration values from file */
+  /* open the file */
+  c_fp = fopen("/usr/share/eGalaxCalibration/touchscreen_axes_calib", "r");
+  if (c_fp == NULL)
+  {
+      printf("error reading file\n");
+  }
+  else
+  {
+    fscanf(c_fp, "calib_x_d=%d;calib_x_fact=%f;calib_y_d=%d;calib_y_fact=%f;swap_axes=%d;click_confines=%d\n",
+        &calib_x_d,
+        &calib_x_fact,
+        &calib_y_d,
+        &calib_y_fact,
+        &swap_axes,
+        &click_confines
+    );
+    printf("File touchscreen_axes_calib successfully read:\n");
+
+    /* close the file */
+    fclose(c_fp);
+  }
+
+  printf("  calib_x_d=%d;\n  calib_x_fact=%f;\n  calib_y_d=%d;\n  calib_y_fact=%f;\n  swap_axes=:%d;\n  click_confines=%d;",
+      calib_x_d,
+      calib_x_fact,
+      calib_y_d,
+      calib_y_fact,
+      swap_axes,
+      click_confines
+  );
+  /* [AI]: read calibration values from file */
+
   m_fd = -1;
   m_vt_fd = -1;
   m_hasLeds = false;
@@ -451,6 +494,16 @@ bool CLinuxInputDevice::KeyEvent(const struct input_event& levt, XBMC_Event& dev
 {
   int code = levt.code;
 
+#define AI_VALUE_PRESS    (1)
+#define AI_VALUE_RELEASE  (0)
+  /* [AI]: only for touchscreens, when PRESS action occurs */
+  if(levt.code == BTN_TOUCH && levt.value == AI_VALUE_PRESS)
+  {
+    //CLog::Log(LOGWARNING, "[AI]: CLinuxInputDevice::KeyEvent: Hack coordinates \n");
+    m_mouseX = g_graphicsContext.GetWidth() + 2;
+    m_mouseY = g_graphicsContext.GetHeight() + 2;
+  }
+    
   /* map touchscreen and smartpad events to button mouse */
   if (code == BTN_TOUCH || code == BTN_TOOL_FINGER)
     code = BTN_MOUSE;
@@ -598,11 +651,19 @@ bool CLinuxInputDevice::AbsEvent(const struct input_event& levt, XBMC_Event& dev
   switch (levt.code)
   {
   case ABS_X:
-    m_mouseX = levt.value;
+    //m_mouseX = levt.value;
+    if(swap_axes)
+      m_mouseY = g_graphicsContext.GetHeight() - (int)(((float)levt.value) * (calib_y_fact)) - calib_y_d;
+    else
+      m_mouseX = g_graphicsContext.GetWidth() - (int)(((float)levt.value) * (calib_x_fact)) - calib_x_d;
     break;
 
   case ABS_Y:
-    m_mouseY = levt.value;
+    //m_mouseY = levt.value;
+    if(swap_axes)
+      m_mouseX = g_graphicsContext.GetWidth() - (int)(((float)levt.value) * (calib_x_fact)) - calib_x_d;
+    else
+      m_mouseY = g_graphicsContext.GetHeight() - (int)(((float)levt.value) * (calib_y_fact)) - calib_y_d;
     break;
   
   case ABS_MISC:
