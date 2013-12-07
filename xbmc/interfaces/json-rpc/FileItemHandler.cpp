@@ -427,7 +427,8 @@ bool CFileItemHandler::FillFileItemList(const CVariant &parameterObject, CFileIt
       {
         CPictureInfoTag picture;
         picture.Load(item->GetPath());
-        *item->GetPictureInfoTag() = picture;
+        //JAIS
+        //*item->GetPictureInfoTag() = picture;
       }
       if (item->GetLabel().IsEmpty())
         item->SetLabel(CUtil::GetTitleFromPath(file, false));

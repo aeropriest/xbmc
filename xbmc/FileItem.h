@@ -133,7 +133,7 @@ public:
   CFileItem(const PVR::CPVRTimerInfoTag& timer);
   CFileItem(const CMediaSource& share);
   virtual ~CFileItem(void);
-  CFileItem(const CMediaSource& share);  virtual ~CFileItem(void);
+  //CFileItem(const CMediaSource& share);  
   virtual CGUIListItem *Clone() const { return new CFileItem(*this); };
 
   const CStdString &GetPath() const { return m_strPath; };
@@ -266,7 +266,7 @@ public:
   }
   
   PICTURE_INFO::CPictureInfoTag* GetPictureInfoTag();
-  
+
   inline const PICTURE_INFO::CPictureInfoTag* GetPictureInfoTag() const
   {
     return m_pictureInfoTag;
@@ -344,17 +344,6 @@ public:
     return m_pvrTimerInfoTag;
   }
 
-  inline bool HasPictureInfoTag() const
-  {
-    return m_pictureInfoTag != NULL;
-  }
-
-  inline const CPictureInfoTag* GetPictureInfoTag() const
-  {
-    return m_pictureInfoTag;
-  }
-
-  CPictureInfoTag* GetPictureInfoTag();
 
   /*!
    \brief Get the local fanart for this item if it exists
@@ -520,7 +509,6 @@ private:
   PVR::CPVRChannel* m_pvrChannelInfoTag;
   PVR::CPVRRecording* m_pvrRecordingInfoTag;
   PVR::CPVRTimerInfoTag * m_pvrTimerInfoTag;
-  CPictureInfoTag* m_pictureInfoTag;
   bool m_bIsAlbum;
 };
 

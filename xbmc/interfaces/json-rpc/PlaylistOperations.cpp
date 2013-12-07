@@ -150,8 +150,8 @@ JSONRPC_STATUS CPlaylistOperations::Add(const CStdString &method, ITransportLaye
         CPictureInfoTag picture = CPictureInfoTag();
         if (!picture.Load(list[index]->GetPath()))
           continue;
-
-        *list[index]->GetPictureInfoTag() = picture;
+        //jais
+        //*list[index]->GetPictureInfoTag() = picture;
         slideshow->Add(list[index].get());
       }
       break;

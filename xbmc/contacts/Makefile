@@ -1,12 +1,10 @@
 SRCS=GUIDialogContactInfo.cpp \
      GUIViewStateContacts.cpp \
-     GUIWindowContacts.cpp \
-     GUIWindowSlideShow.cpp \
+     ContactDatabase.cpp \
      Contact.cpp \
+     ContactDbUrl.cpp \
      ContactInfoLoader.cpp \
-     ContactInfoTag.cpp \
      ContactThumbLoader.cpp \
-     SlideShowContact.cpp \
      
 LIB=contacts.a
 

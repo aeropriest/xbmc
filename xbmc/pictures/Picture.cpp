@@ -436,7 +436,7 @@ bool CPicture::TransposeOffAxis(uint32_t *&pixels, unsigned int &width, unsigned
 
 
 CPicture::CPicture(CFileItem& item)
-{
+{   
     CPictureInfoTag& tag = *item.GetPictureInfoTag();
     SYSTEMTIME stTime;
     strTitle = tag.GetTitle();

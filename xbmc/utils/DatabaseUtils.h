@@ -121,7 +121,7 @@ typedef enum {
   FieldBorn,
   FieldBandFormed,
   FieldDisbanded,
-  FieldDied
+  FieldDied,
   
   FieldOrientation,
   FieldTakenOn,
@@ -139,7 +139,7 @@ typedef enum {
   FieldEmails,
   FieldProfessional,
   FieldDates,
-  FieldRelations
+  FieldRelations,
 } Field;
 
 typedef std::set<Field> Fields;

@@ -201,12 +201,12 @@ JsonRpcMethodMap CJSONServiceDescription::m_methodMaps[] = {
   { "PVR.GetChannelDetails",                        CPVROperations::GetChannelDetails },
   { "PVR.Record",                                   CPVROperations::Record },
   { "PVR.Scan",                                     CPVROperations::Scan },
-
+/*
 // Profiles operations
   { "Profiles.GetProfiles",                         CProfilesOperations::GetProfiles},
   { "Profiles.GetCurrentProfile",                   CProfilesOperations::GetCurrentProfile},
   { "Profiles.LoadProfile",                         CProfilesOperations::LoadProfile},
-
+*/
 // System operations
   { "System.GetProperties",                         CSystemOperations::GetProperties },
   { "System.EjectOpticalDrive",                     CSystemOperations::EjectOpticalDrive },

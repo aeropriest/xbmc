@@ -910,8 +910,8 @@ JSONRPC_STATUS CPictureLibrary::GetLocations(const CStdString &method, ITranspor
     return InternalError;
   
   /* need to set strTitle in each item*/
-  for (unsigned int i = 0; i < (unsigned int)items.Size(); i++)
-    items[i]->GetPictureInfoTag()->SetTitle(items[i]->GetLabel());
+  //for (unsigned int i = 0; i < (unsigned int)items.Size(); i++)
+  //  items[i]->GetPictureInfoTag()->SetTitle(items[i]->GetLabel());
   
   HandleFileItemList("locationid", false, "locations", items, parameterObject, result);
   return OK;
