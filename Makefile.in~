@@ -75,7 +75,6 @@ DIRECTORY_ARCHIVES=$(DVDPLAYER_ARCHIVES) \
                    xbmc/peripherals/dialogs/peripheral-dialogs.a \
                    xbmc/peripherals/peripherals.a \
                    xbmc/pictures/pictures.a \
-                   xbmc/contacts/contacts.a \
                    xbmc/playlists/playlists.a \
                    xbmc/powermanagement/powermanagement.a \
                    xbmc/profiles/profiles.a \
