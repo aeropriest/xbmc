@@ -37,6 +37,102 @@ using namespace XFILE;
 using namespace std;
 using namespace PICTURE_INFO;
 
+CPictureThumbLoader::CPictureThumbLoader() : CThumbLoader(), CJobQueue(true, 1, CJob::PRIORITY_LOW_PAUSABLE)
+{
+  m_regenerateThumbs = false;
+}
+
+CPictureThumbLoader::~CPictureThumbLoader()
+{
+  StopThread();
+}
+
+void CPictureThumbLoader::OnLoaderFinish()
+{
+  m_regenerateThumbs = false;
+  CThumbLoader::OnLoaderFinish();
+}
+
+bool CPictureThumbLoader::LoadItem(CFileItem* pItem)
+{
+  bool result  = LoadItemCached(pItem);
+       result |= LoadItemLookup(pItem);
+
+  return result;
+}
+
+bool CPictureThumbLoader::LoadItemCached(CFileItem* pItem)
+{
+  if (pItem->m_bIsShareOrDrive
+  ||  pItem->IsParentFolder())
+    return false;
+
+  if (pItem->HasArt("thumb") && m_regenerateThumbs)
+  {
+    CTextureCache::Get().ClearCachedImage(pItem->GetArt("thumb"));
+    if (m_textureDatabase->Open())
+    {
+      m_textureDatabase->ClearTextureForPath(pItem->GetPath(), "thumb");
+      m_textureDatabase->Close();
+    }
+    pItem->SetArt("thumb", "");
+  }
+
+  CStdString thumb;
+  if (pItem->IsPicture() && !pItem->IsZIP() && !pItem->IsRAR() && !pItem->IsCBZ() && !pItem->IsCBR() && !pItem->IsPlayList())
+  { // load the thumb from the image file
+    thumb = pItem->HasArt("thumb") ? pItem->GetArt("thumb") : CTextureUtils::GetWrappedThumbURL(pItem->GetPath());
+  }
+  else if (pItem->IsVideo() && !pItem->IsZIP() && !pItem->IsRAR() && !pItem->IsCBZ() && !pItem->IsCBR() && !pItem->IsPlayList())
+  { // video
+    CVideoThumbLoader loader;
+    if (!loader.FillThumb(*pItem))
+    {
+      CStdString thumbURL = CVideoThumbLoader::GetEmbeddedThumbURL(*pItem);
+      if (CTextureCache::Get().HasCachedImage(thumbURL))
+      {
+        thumb = thumbURL;
+      }
+      else if (CSettings::Get().GetBool("myvideos.extractthumb") && CSettings::Get().GetBool("myvideos.extractflags"))
+      {
+        CFileItem item(*pItem);
+        CThumbExtractor* extract = new CThumbExtractor(item, pItem->GetPath(), true, thumbURL);
+        AddJob(extract);
+        thumb.clear();
+      }
+    }
+  }
+  else if (!pItem->HasArt("thumb"))
+  { // folder, zip, cbz, rar, cbr, playlist may have a previously cached image
+    thumb = GetCachedImage(*pItem, "thumb");
+  }
+  if (!thumb.empty())
+  {
+    CTextureCache::Get().BackgroundCacheImage(thumb);
+    pItem->SetArt("thumb", thumb);
+  }
+  pItem->FillInDefaultIcon();
+  return true;
+}
+
+bool CPictureThumbLoader::LoadItemLookup(CFileItem* pItem)
+{
+  return false;
+}
+
+void CPictureThumbLoader::OnJobComplete(unsigned int jobID, bool success, CJob* job)
+{
+  if (success)
+  {
+    CThumbExtractor* loader = (CThumbExtractor*)job;
+    loader->m_item.SetPath(loader->m_listpath);
+    CFileItemPtr pItem(new CFileItem(loader->m_item));
+    CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE_ITEM, 0, pItem);
+    g_windowManager.SendThreadMessage(msg);
+  }
+  CJobQueue::OnJobComplete(jobID, success, job);
+}
+
 void CPictureThumbLoader::ProcessFoldersAndArchives(CFileItem *pItem)
 {
   if (pItem->HasArt("thumb"))
@@ -129,7 +225,7 @@ void CPictureThumbLoader::ProcessFoldersAndArchives(CFileItem *pItem)
       if (items.Size() < 4 || pItem->IsCBR() || pItem->IsCBZ())
       { // less than 4 items, so just grab the first thumb
         items.Sort(SortByLabel, SortOrderAscending);
-        CStdString thumb = CTextureCache::GetWrappedThumbURL(items[0]->GetPath());
+        CStdString thumb = CTextureUtils::GetWrappedThumbURL(items[0]->GetPath());
         db.SetTextureForPath(pItem->GetPath(), "thumb", thumb);
         CTextureCache::Get().BackgroundCacheImage(thumb);
         pItem->SetArt("thumb", thumb);
@@ -141,7 +237,7 @@ void CPictureThumbLoader::ProcessFoldersAndArchives(CFileItem *pItem)
         vector<string> files;
         for (int thumb = 0; thumb < 4; thumb++)
           files.push_back(items[thumb]->GetPath());
-        CStdString thumb = CTextureCache::GetWrappedImageURL(pItem->GetPath(), "picturefolder");
+        CStdString thumb = CTextureUtils::GetWrappedImageURL(pItem->GetPath(), "picturefolder");
         CStdString relativeCacheFile = CTextureCache::GetCacheFile(thumb) + ".png";
         if (CPicture::CreateTiledThumb(files, CTextureCache::GetCachedPath(relativeCacheFile)))
         {

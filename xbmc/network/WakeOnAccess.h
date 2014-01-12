@@ -21,15 +21,15 @@
 #include "URL.h"
 #include "XBDateTime.h"
 #include "utils/Job.h"
-#include "settings/ISettingsHandler.h"
+#include "settings/lib/ISettingsHandler.h"
 
 class CWakeOnAccess : private IJobCallback, public ISettingsHandler
 {
 public:
   static CWakeOnAccess &Get();
 
-  void WakeUpHost (const CURL& fileUrl);
-  void WakeUpHost (const CStdString& hostName, const std::string& customMessage);
+  bool WakeUpHost (const CURL& fileUrl);
+  bool WakeUpHost (const CStdString& hostName, const std::string& customMessage);
 
   void QueueMACDiscoveryForAllRemotes();
 
@@ -77,5 +77,5 @@ private:
 
   bool m_enabled;
 
-  void WakeUpHost(const WakeUpEntry& server);
+  bool WakeUpHost(const WakeUpEntry& server);
 };

@@ -50,7 +50,6 @@ public:
     CONFIGURE,
     UNCONFIGURE,
     SILENCEMODE,
-    ISCOMPATIBLE,
     VOLUME,
     FLUSH,
     TIMEOUT,
@@ -89,6 +88,8 @@ public:
   void Start();
   void Dispose();
   bool HasVolume();
+  AEDeviceType GetDeviceType(const std::string &device);
+  bool HasPassthroughDevice();
   CSinkControlProtocol m_controlPort;
   CSinkDataProtocol m_dataPort;
 
@@ -99,7 +100,6 @@ protected:
   void GetDeviceFriendlyName(std::string &device);
   void OpenSink();
   void ReturnBuffers();
-  bool IsCompatible(const AEAudioFormat format, const std::string &device);
 
   unsigned int OutputSamples(CSampleBuffer* samples);
   void ConvertInit(CSampleBuffer* samples);
@@ -114,7 +114,8 @@ protected:
   bool m_bStateMachineSelfTrigger;
   int m_extTimeout;
   bool m_extError;
-  bool m_extSilence;
+  unsigned int m_extSilenceTimeout;
+  XbmcThreads::EndTime m_extSilenceTimer;
 
   CSampleBuffer m_sampleOfSilence;
   uint8_t *m_convertBuffer;

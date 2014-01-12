@@ -15,7 +15,7 @@ DEPENDS = \
 	python26 afpfs-ng libshairplay \
 	libplist libcec libbluray boost tinyxml dummy-libxbmc \
 	libamplayer libssh taglib xbmc-pvr-addons libusb libnfs libmp3lame \
-        pythonmodule-pil
+	pythonmodule-pil libxslt
 
 ifeq ($(ENABLE_GPLV3),1)
   DEPENDS+=samba-gplv3 libcdio-gplv3
@@ -30,7 +30,7 @@ endif
 
 ifeq ($(OS),osx)
   DEPENDS += libGLEW libsdl libcrystalhd
-  EXCLUDED_DEPENDS = libusb
+  EXCLUDED_DEPENDS = libusb gmp nettle gnutls
 endif
 
 ifeq ($(OS),android)
@@ -55,9 +55,12 @@ endif
 ALSA_LIB=
 LINUX_SYSTEM_LIBS=
 ifeq ($(OS),linux)
-  DEPENDS += alsa-lib libsdl linux-system-libs
-  ALSA_LIB = alsa-lib
-  LINUX_SYSTEM_LIBS = linux-system-libs
+  #not for raspberry pi
+  ifneq ($(CPU),arm)
+    DEPENDS += alsa-lib libsdl linux-system-libs
+    ALSA_LIB = alsa-lib
+    LINUX_SYSTEM_LIBS = linux-system-libs
+  endif
 endif
 
 .PHONY: $(DEPENDS)
@@ -92,6 +95,7 @@ gnutls: nettle $(ZLIB)
 nettle: gmp
 pythonmodule-pil: $(ZLIB) libjpeg-turbo libpng freetype2 python26
 libsdl: $(LINUX_SYSTEM_LIBS)
+libxslt: libgcrypt
 
 .installed-$(PLATFORM): $(DEPENDS)
 	touch $@

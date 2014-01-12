@@ -75,13 +75,13 @@ namespace XFILE
       return false;
 
     vector<std::string> baseTokens;
-    if (!strPathInZip.IsEmpty())
+    if (!strPathInZip.empty())
       StringUtils::Tokenize(strPathInZip,baseTokens,"/");
 
     for (vector<SZipEntry>::iterator ze=entries.begin();ze!=entries.end();++ze)
     {
       CStdString strEntryName(ze->name);
-      strEntryName.Replace('\\','/');
+      StringUtils::Replace(strEntryName, '\\','/');
       if (strEntryName == strPathInZip) // skip the listed dir
         continue;
 
@@ -123,8 +123,7 @@ namespace XFILE
 
       CFileItemPtr pFileItem(new CFileItem);
 
-      if (g_charsetConverter.isValidUtf8(pathTokens[baseTokens.size()]))
-        g_charsetConverter.utf8ToStringCharset(pathTokens[baseTokens.size()]);
+      g_charsetConverter.unknownToUTF8(pathTokens[baseTokens.size()]);
 
       pFileItem->SetLabel(pathTokens[baseTokens.size()]);
       if (bIsFolder)

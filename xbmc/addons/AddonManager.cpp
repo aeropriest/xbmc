@@ -85,8 +85,8 @@ AddonPtr CAddonMgr::Factory(const cp_extension_t *props)
       return AddonPtr(new CPluginSource(props));
     case ADDON_SCRIPT_LIBRARY:
     case ADDON_SCRIPT_LYRICS:
-    case ADDON_SCRIPT_SUBTITLES:
     case ADDON_SCRIPT_MODULE:
+    case ADDON_SUBTITLE_MODULE:
     case ADDON_WEB_INTERFACE:
       return AddonPtr(new CAddon(props));
     case ADDON_SCRIPT_WEATHER:
@@ -420,7 +420,7 @@ bool CAddonMgr::GetAddons(const TYPE &type, VECADDONS &addons, bool enabled /* =
   for(int i=0; i <num; i++)
   {
     const cp_extension_t *props = exts[i];
-    if (m_database.IsAddonDisabled(props->plugin->identifier) != enabled)
+    if (IsAddonDisabled(props->plugin->identifier) != enabled)
     {
       // get a pointer to a running pvrclient if it's already started, or we won't be able to change settings
       if (TranslateType(props->ext_point_id) == ADDON_PVRDLL &&
@@ -457,7 +457,7 @@ bool CAddonMgr::GetAddon(const CStdString &str, AddonPtr &addon, const TYPE &typ
 
     if (addon && addon.get())
     {
-      if (enabledOnly && m_database.IsAddonDisabled(addon->ID()))
+      if (enabledOnly && IsAddonDisabled(addon->ID()))
         return false;
 
       if (addon->Type() == ADDON_PVRDLL && g_PVRManager.IsStarted())
@@ -575,6 +575,31 @@ void CAddonMgr::RemoveAddon(const CStdString& ID)
   }
 }
 
+bool CAddonMgr::DisableAddon(const std::string& ID, bool disable)
+{
+  CSingleLock lock(m_critSection);
+  if (m_database.DisableAddon(ID, disable))
+  {
+    m_disabled[ID] = disable;
+    return true;
+  }
+
+  return false;
+}
+
+bool CAddonMgr::IsAddonDisabled(const std::string& ID)
+{
+  CSingleLock lock(m_critSection);
+  std::map<std::string, bool>::const_iterator it = m_disabled.find(ID);
+  if (it != m_disabled.end())
+    return it->second;
+
+  bool ret = m_database.IsAddonDisabled(ID);
+  m_disabled.insert(pair<std::string, bool>(ID, ret));
+
+  return ret;
+}
+
 const char *CAddonMgr::GetTranslatedString(const cp_cfg_element_t *root, const char *tag)
 {
   if (!root)
@@ -606,8 +631,8 @@ AddonPtr CAddonMgr::AddonFromProps(AddonProps& addonProps)
     case ADDON_SCRIPT_LIBRARY:
     case ADDON_SCRIPT_LYRICS:
     case ADDON_SCRIPT_WEATHER:
-    case ADDON_SCRIPT_SUBTITLES:
     case ADDON_SCRIPT_MODULE:
+    case ADDON_SUBTITLE_MODULE:
     case ADDON_WEB_INTERFACE:
       return AddonPtr(new CAddon(addonProps));
     case ADDON_SERVICE:
@@ -732,7 +757,7 @@ bool CAddonMgr::GetExtList(cp_cfg_element_t *base, const char *path, vector<CStd
   if (!base || !path)
     return false;
   CStdString all = m_cpluff->lookup_cfg_value(base, path);
-  if (all.IsEmpty())
+  if (all.empty())
     return false;
   StringUtils::SplitString(all, " ", result);
   return true;

@@ -25,6 +25,7 @@
 #include "addons/GUIDialogAddonSettings.h"
 #include "guilib/GUIWindowManager.h"
 #include "GUIUserMessages.h"
+#include "utils/StringUtils.h"
 
 using namespace ADDON;
 
@@ -36,7 +37,7 @@ namespace XBMCAddon
 
     String Addon::getAddonVersion() { return languageHook == NULL ? emptyString : languageHook->GetAddonVersion(); }
 
-    Addon::Addon(const char* cid) throw (AddonException) : AddonClass("Addon") 
+    Addon::Addon(const char* cid) throw (AddonException)
     {
       String id(cid ? cid : emptyString);
 
@@ -150,9 +151,7 @@ namespace XBMCAddon
         return pAddon->Profile();
       else if (strcmpi(id, "stars") == 0)
       {
-        CStdString tmps;
-        tmps.Format("%d", pAddon->Stars());
-        return tmps;
+        return StringUtils::Format("%d", pAddon->Stars());
       }
       else if (strcmpi(id, "summary") == 0)
         return pAddon->Summary();

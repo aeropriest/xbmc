@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2011-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -32,6 +32,8 @@
 
 #include "guilib/Resolution.h"
 #include "guilib/gui3d.h"
+
+#include "utils/StringUtils.h"
 
 #include "windowing/DllWaylandClient.h"
 #include "windowing/DllXKBCommon.h"
@@ -694,7 +696,7 @@ void ResolutionInfoForMode(const xw::Output::ModeGeometry &mode,
   res.fPixelRatio = 1.0f;
   res.iScreenWidth = res.iWidth;
   res.iScreenHeight = res.iHeight;
-  res.strMode.Format("%dx%d @ %.2fp",
+  res.strMode = StringUtils::Format("%dx%d @ %.2fp",
                      res.iScreenWidth,
                      res.iScreenHeight,
                      res.fRefreshRate);

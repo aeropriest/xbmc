@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -61,6 +61,7 @@ public:
   // MediaCodec related
   void                ReleaseOutputBuffer(bool render);
   // SurfaceTexture released
+  int                 GetIndex() const;
   int                 GetTextureID() const;
   void                GetTransformMatrix(float *textureMatrix);
   void                UpdateTexImage();
@@ -103,7 +104,7 @@ public:
 
 protected:
   void            FlushInternal(void);
-  void            ConfigureMediaCodec(void);
+  bool            ConfigureMediaCodec(void);
   int             GetOutputPicture(void);
   void            OutputFormatChanged(void);
 

@@ -37,14 +37,10 @@ public:
 
     virtual bool Initialize  (AEAudioFormat &format, std::string &device);
     virtual void Deinitialize();
-    virtual bool IsCompatible(const AEAudioFormat &format, const std::string &device);
 
     virtual double       GetDelay                    ();
-    virtual double       GetCacheTime                ();
     virtual double       GetCacheTotal               ();
     virtual unsigned int AddPackets                  (uint8_t *data, unsigned int frames, bool hasAudio, bool blocking = false);
-    virtual bool         SoftSuspend                 ();
-    virtual bool         SoftResume                  ();
     virtual void         Drain                       ();
     static  void         EnumerateDevicesEx          (AEDeviceInfoList &deviceInfoList, bool force = false);
 private:

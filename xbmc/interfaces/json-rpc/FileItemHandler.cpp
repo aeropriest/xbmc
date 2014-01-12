@@ -37,13 +37,15 @@
 #include "video/VideoDatabase.h"
 #include "filesystem/Directory.h"
 #include "filesystem/File.h"
-#include "TextureCache.h"
+#include "TextureDatabase.h"
 #include "video/VideoThumbLoader.h"
 #include "music/MusicThumbLoader.h"
 #include "pictures/PictureThumbLoader.h"
 #include "contacts/ContactThumbLoader.h"
 #include "Util.h"
 #include "pvr/channels/PVRChannel.h"
+#include "epg/Epg.h"
+#include "epg/EpgContainer.h"
 
 using namespace MUSIC_INFO;
 using namespace PICTURE_INFO;
@@ -121,7 +123,7 @@ bool CFileItemHandler::GetField(const std::string &field, const CVariant &info, 
       for (CGUIListItem::ArtMap::const_iterator artIt = artMap.begin(); artIt != artMap.end(); ++artIt)
       {
         if (!artIt->second.empty())
-          artObj[artIt->first] = CTextureCache::GetWrappedImageURL(artIt->second);
+          artObj[artIt->first] = CTextureUtils::GetWrappedImageURL(artIt->second);
       }
 
       result["art"] = artObj;
@@ -138,13 +140,13 @@ bool CFileItemHandler::GetField(const std::string &field, const CVariant &info, 
         fetchedArt = true;
       }
       else if (item->HasPictureInfoTag() && !item->HasArt("thumb"))
-        item->SetArt("thumb", CTextureCache::GetWrappedThumbURL(item->GetPath()));
+        item->SetArt("thumb", CTextureUtils::GetWrappedThumbURL(item->GetPath()));
       
       else if (item->HasContactInfoTag() && !item->HasArt("thumb"))
         item->SetArt("thumb", CTextureCache::GetWrappedImageURL(item->GetPath()));
 
       if (item->HasArt("thumb"))
-        result["thumbnail"] = CTextureCache::GetWrappedImageURL(item->GetArt("thumb"));
+        result["thumbnail"] = CTextureUtils::GetWrappedImageURL(item->GetArt("thumb"));
       else
         result["thumbnail"] = "";
       
@@ -161,7 +163,7 @@ bool CFileItemHandler::GetField(const std::string &field, const CVariant &info, 
       }
       
       if (item->HasArt("fanart"))
-        result["fanart"] = CTextureCache::GetWrappedImageURL(item->GetArt("fanart"));
+        result["fanart"] = CTextureUtils::GetWrappedImageURL(item->GetArt("fanart"));
       else
         result["fanart"] = "";
       
@@ -291,9 +293,9 @@ void CFileItemHandler::HandleFileItem(const char *ID, bool allowFile, const char
     {
       if (allowFile)
       {
-        if (item->HasVideoInfoTag() && !item->GetVideoInfoTag()->GetPath().IsEmpty())
-            object["file"] = item->GetVideoInfoTag()->GetPath().c_str();
-        if (item->HasMusicInfoTag() && !item->GetMusicInfoTag()->GetURL().IsEmpty())
+        if (item->HasVideoInfoTag() && !item->GetVideoInfoTag()->GetPath().empty())
+          object["file"] = item->GetVideoInfoTag()->GetPath().c_str();
+        if (item->HasMusicInfoTag() && !item->GetMusicInfoTag()->GetURL().empty())
           object["file"] = item->GetMusicInfoTag()->GetURL().c_str();
         if (item->HasPictureInfoTag() && !item->GetPictureInfoTag()->GetURL().IsEmpty())
           object["file"] = item->GetPictureInfoTag()->GetURL().c_str();
@@ -308,6 +310,8 @@ void CFileItemHandler::HandleFileItem(const char *ID, bool allowFile, const char
     {
       if (item->HasPVRChannelInfoTag() && item->GetPVRChannelInfoTag()->ChannelID() > 0)
          object[ID] = item->GetPVRChannelInfoTag()->ChannelID();
+      else if (item->HasEPGInfoTag() && item->GetEPGInfoTag()->UniqueBroadcastID() > 0)
+         object[ID] = item->GetEPGInfoTag()->UniqueBroadcastID();
       else if (item->HasMusicInfoTag() && item->GetMusicInfoTag()->GetDatabaseId() > 0)
         object[ID] = (int)item->GetMusicInfoTag()->GetDatabaseId();
       else if (item->HasVideoInfoTag() && item->GetVideoInfoTag()->m_iDbId > 0)
@@ -372,6 +376,8 @@ void CFileItemHandler::HandleFileItem(const char *ID, bool allowFile, const char
 
     if (item->HasPVRChannelInfoTag())
       FillDetails(item->GetPVRChannelInfoTag(), item, fields, object, thumbLoader);
+    if (item->HasEPGInfoTag())
+      FillDetails(item->GetEPGInfoTag(), item, fields, object, thumbLoader);
     if (item->HasVideoInfoTag())
       FillDetails(item->GetVideoInfoTag(), item, fields, object, thumbLoader);
     if (item->HasMusicInfoTag())

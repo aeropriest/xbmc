@@ -24,6 +24,7 @@
 #include "filesystem/File.h"
 #include "settings/Settings.h"
 #include "utils/log.h"
+#include "utils/Utf8Utils.h"
 #include <math.h>
 
 #include "karaokelyricstextkar.h"
@@ -315,11 +316,11 @@ void CKaraokeLyricsTextKAR::parseMIDI()
             // Keywords
             if ( tempbuf[0] == '@' && tempbuf[1] == 'T' && strlen( tempbuf + 2 ) > 0 )
             {
-              if ( m_songName.IsEmpty() )
+              if ( m_songName.empty() )
                 m_songName = convertText( tempbuf + 2 );
               else
               {
-                if ( !m_artist.IsEmpty() )
+                if ( !m_artist.empty() )
                   m_artist += "[CR]";
 
                 m_artist += convertText( tempbuf + 2 );
@@ -600,7 +601,7 @@ CStdString CKaraokeLyricsTextKAR::convertText( const char * data )
   CStdString strUTF8;
 
   // Use some heuristics; need to replace by real detection stuff later
-  if ( g_charsetConverter.isValidUtf8(data) || CSettings::Get().GetString("karaoke.charset") == "DEFAULT" )
+  if (CUtf8Utils::isValidUtf8(data) || CSettings::Get().GetString("karaoke.charset") == "DEFAULT")
     strUTF8 = data;
   else
     g_charsetConverter.ToUtf8( CSettings::Get().GetString("karaoke.charset"), data, strUTF8 );

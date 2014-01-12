@@ -122,6 +122,7 @@ typedef enum {
   FieldBandFormed,
   FieldDisbanded,
   FieldDied,
+<<<<<<< HEAD
   
   FieldOrientation,
   FieldTakenOn,
@@ -140,6 +141,10 @@ typedef enum {
   FieldProfessional,
   FieldDates,
   FieldRelations,
+=======
+  FieldStereoMode,
+  FieldMax
+>>>>>>> 11bfb5ef17041890dca4c0bed94bf7a20d1bc4b8
 } Field;
 
 typedef std::set<Field> Fields;

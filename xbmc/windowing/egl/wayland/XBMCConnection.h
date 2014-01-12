@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2011-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@ struct wl_output;
 struct wl_shell;
 struct wl_seat;
 
-typedef struct wl_egl_window * EGLNativeWindowType;
+typedef struct wl_display * EGLNativeDisplayType;
 
 struct RESOLUTION_INFO;
 

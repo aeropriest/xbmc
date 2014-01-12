@@ -27,7 +27,7 @@
 #include "utils/log.h"
 #include "XBTF.h"
 #include "JpegIO.h"
-
+#include "utils/StringUtils.h"
 #include <setjmp.h>
 
 #define EXIF_TAG_ORIENTATION    0x0112
@@ -374,8 +374,9 @@ bool CJpegIO::Read(unsigned char* buffer, unsigned int bufSize, unsigned int min
     m_cinfo.scale_denom = 8;
     m_cinfo.out_color_space = JCS_RGB;
     unsigned int maxtexsize = g_Windowing.GetMaxTextureSize();
-    for (m_cinfo.scale_num = 1; m_cinfo.scale_num <= 8; m_cinfo.scale_num++)
+    for (unsigned int scale = 1; scale <= 8; scale++)
     {
+      m_cinfo.scale_num = scale;
       jpeg_calc_output_dimensions(&m_cinfo);
       if ((m_cinfo.output_width > maxtexsize) || (m_cinfo.output_height > maxtexsize))
       {
@@ -593,8 +594,7 @@ bool CJpegIO::CreateThumbnailFromSurface(unsigned char* buffer, unsigned int wid
 // override libjpeg's error function to avoid an exit() call
 void CJpegIO::jpeg_error_exit(j_common_ptr cinfo)
 {
-  CStdString msg;
-  msg.Format("Error %i: %s",cinfo->err->msg_code, cinfo->err->jpeg_message_table[cinfo->err->msg_code]);
+  CStdString msg = StringUtils::Format("Error %i: %s",cinfo->err->msg_code, cinfo->err->jpeg_message_table[cinfo->err->msg_code]);
   CLog::Log(LOGWARNING, "JpegIO: %s", msg.c_str());
 
   my_error_mgr *myerr = (my_error_mgr*)cinfo->err;

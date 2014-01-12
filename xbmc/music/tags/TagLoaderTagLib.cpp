@@ -94,15 +94,15 @@ bool CTagLoaderTagLib::Load(const CStdString& strFileName, MUSIC_INFO::CMusicInf
 bool CTagLoaderTagLib::Load(const CStdString& strFileName, CMusicInfoTag& tag, const CStdString& fallbackFileExtension, MUSIC_INFO::EmbeddedArt *art /* = NULL */)
 {  
   CStdString strExtension = URIUtils::GetExtension(strFileName);
-  strExtension.ToLower();
-  strExtension.TrimLeft('.');
+  StringUtils::ToLower(strExtension);
+  StringUtils::TrimLeft(strExtension, ".");
 
-  if (strExtension.IsEmpty())
+  if (strExtension.empty())
   {
     strExtension = fallbackFileExtension;
-    if (strExtension.IsEmpty())
+    if (strExtension.empty())
       return false;
-    strExtension.ToLower();
+    StringUtils::ToLower(strExtension);
   }
 
   TagLibVFSStream*           stream = new TagLibVFSStream(strFileName, true);
@@ -237,7 +237,7 @@ bool CTagLoaderTagLib::Load(const CStdString& strFileName, CMusicInfoTag& tag, c
   if (flacFile)
     SetFlacArt(flacFile, art, tag);
 
-  if (!tag.GetTitle().IsEmpty() || !tag.GetArtist().empty() || !tag.GetAlbum().IsEmpty())
+  if (!tag.GetTitle().empty() || !tag.GetArtist().empty() || !tag.GetAlbum().empty())
     tag.SetLoaded();
   tag.SetURL(strFileName);
 
@@ -608,6 +608,14 @@ bool CTagLoaderTagLib::ParseMP4Tag(MP4::Tag *mp4, EmbeddedArt *art, CMusicInfoTa
     else if (it->first == "trkn")    tag.SetTrackNumber(it->second.toIntPair().first);
     else if (it->first == "disk")    tag.SetPartOfSet(it->second.toIntPair().first);
     else if (it->first == "\251day") tag.SetYear(it->second.toStringList().front().toInt());
+    else if (it->first == "----:com.apple.iTunes:replaygain_track_gain")
+      tag.SetReplayGainTrackGain((int)(atof(it->second.toStringList().front().toCString()) * 100 + 0.5));
+    else if (it->first == "----:com.apple.iTunes:replaygain_album_gain")
+      tag.SetReplayGainAlbumGain((int)(atof(it->second.toStringList().front().toCString()) * 100 + 0.5));
+    else if (it->first == "----:com.apple.iTunes:replaygain_track_peak")
+      tag.SetReplayGainTrackPeak((float)(atof(it->second.toStringList().front().toCString())));
+    else if (it->first == "----:com.apple.iTunes:replaygain_album_peak")
+      tag.SetReplayGainAlbumPeak((float)(atof(it->second.toStringList().front().toCString())));
     else if (it->first == "----:com.apple.iTunes:MusicBrainz Artist Id")
       tag.SetMusicBrainzArtistID(StringListToVectorString(it->second.toStringList()));
     else if (it->first == "----:com.apple.iTunes:MusicBrainz Album Artist Id")

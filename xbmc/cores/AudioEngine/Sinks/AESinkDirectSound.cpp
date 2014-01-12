@@ -334,47 +334,6 @@ void CAESinkDirectSound::Deinitialize()
   m_dwBufferLen = 0;
 }
 
-bool CAESinkDirectSound::IsCompatible(const AEAudioFormat &format, const std::string &device)
-{
-  if (!m_initialized || m_isDirtyDS)
-    return false;
-
-  u_int notCompatible         = 0;
-  const u_int numTests        = 6;
-  std::string strDiffBecause ("");
-  static const char* compatibleParams[numTests] = {":Devices",
-                                                   ":Channels",
-                                                   ":Sample Rates",
-                                                   ":Data Formats",
-                                                   ":Bluray Formats",
-                                                   ":Passthrough Formats"};
-
-  notCompatible = (notCompatible  +!((AE_IS_RAW(format.m_dataFormat)  == AE_IS_RAW(m_encodedFormat))        ||
-                                     (!AE_IS_RAW(format.m_dataFormat) == !AE_IS_RAW(m_encodedFormat))))     << 1;
-  notCompatible = (notCompatible  + ((format.m_dataFormat             == AE_FMT_EAC3)                       ||
-                                     (format.m_dataFormat             == AE_FMT_DTSHD                       ||
-                                     (format.m_dataFormat             == AE_FMT_TRUEHD))))                  << 1;
-  notCompatible = (notCompatible  + !(format.m_dataFormat             == m_format.m_dataFormat))            << 1;
-  notCompatible = (notCompatible  + !(format.m_sampleRate             == m_format.m_sampleRate))            << 1;
-  notCompatible = (notCompatible  + !(format.m_channelLayout.Count()  == m_format.m_channelLayout.Count())) << 1;
-  notCompatible = (notCompatible  + !(m_device                        == device));
-
-  if (!notCompatible)
-  {
-    CLog::Log(LOGDEBUG, __FUNCTION__": Formats compatible - reusing existing sink");
-    return true;
-  }
-
-  for (int i = 0; i < numTests ; i++)
-  {
-    strDiffBecause += (notCompatible & 0x01) ? (std::string) compatibleParams[i] : "";
-    notCompatible    = notCompatible >> 1;
-  }
-
-  CLog::Log(LOGDEBUG, __FUNCTION__": Formats Incompatible due to different %s", strDiffBecause.c_str());
-  return false;
-}
-
 unsigned int CAESinkDirectSound::AddPackets(uint8_t *data, unsigned int frames, bool hasAudio, bool blocking)
 {
   if (!m_initialized)
@@ -475,19 +434,6 @@ double CAESinkDirectSound::GetDelay()
   /* Make sure we know how much data is in the cache */
   if (!UpdateCacheStatus())
     m_isDirtyDS = true;
-
-  /** returns current cached data duration in seconds */
-  double delay = (double)m_CacheLen / (double)m_AvgBytesPerSec;
-  return delay;
-}
-
-double CAESinkDirectSound::GetCacheTime()
-{
-  if (!m_initialized)
-    return 0.0;
-
-  /* Make sure we know how much data is in the cache */
-  UpdateCacheStatus();
 
   /** returns current cached data duration in seconds */
   double delay = (double)m_CacheLen / (double)m_AvgBytesPerSec;
@@ -781,6 +727,12 @@ const char *CAESinkDirectSound::dserr2str(int err)
     case DSERR_UNINITIALIZED: return "DSERR_UNINITIALIZED";
     case DSERR_NOINTERFACE: return "DSERR_NOINTERFACE";
     case DSERR_ACCESSDENIED: return "DSERR_ACCESSDENIED";
+    case DSERR_BUFFERTOOSMALL: return "DSERR_BUFFERTOOSMALL";
+    case DSERR_DS8_REQUIRED: return "DSERR_DS8_REQUIRED";
+    case DSERR_SENDLOOP: return "DSERR_SENDLOOP";
+    case DSERR_BADSENDBUFFERGUID: return "DSERR_BADSENDBUFFERGUID";
+    case DSERR_OBJECTNOTFOUND: return "DSERR_OBJECTNOTFOUND";
+    case DSERR_FXUNAVAILABLE: return "DSERR_FXUNAVAILABLE";
     default: return "unknown";
   }
 }
@@ -879,16 +831,4 @@ failed:
   SAFE_RELEASE(pEnumerator);
 
   return strDevName;
-}
-
-bool CAESinkDirectSound::SoftSuspend()
-{
-  Deinitialize();
-  return true;
-}
-
-bool CAESinkDirectSound::SoftResume()
-{
-  /* Return false to force re-init by engine */
-  return false;
 }

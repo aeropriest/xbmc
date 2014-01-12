@@ -91,9 +91,9 @@ public:
   virtual void      SetMute(const bool enabled);
   virtual bool      IsMuted();
   virtual void      SetSoundMode(const int mode);
-
-
-  virtual bool      SupportsRaw();
+  virtual bool      SupportsRaw(AEDataFormat format);
+  virtual bool      IsSettingVisible(const std::string &settingId);
+  virtual bool      SupportsDrain() { return true; }
 
   CCoreAudioAEHAL*  GetHAL();
 
@@ -148,6 +148,7 @@ private:
 
   // Prevent multiple init/deinit
   bool              m_Initialized;
+  bool              m_deviceLost;
   bool              m_callbackRunning;
 
   AEAudioFormat     m_format;

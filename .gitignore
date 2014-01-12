@@ -58,14 +58,6 @@ config.log
 *.pbxuser
 *project.xcworkspace
 *xcuserdata
-/tools/darwin/depends/config.site
-/tools/darwin/depends/config.site.mk
-/tools/darwin/depends/Makefile
-/tools/darwin/depends/Makefile.include
-/tools/darwin/depends/configure
-/tools/darwin/depends/python26/Makefile
-/tools/darwin/depends/**/.gitignore
-/tools/darwin/depends/**/.installed
 
 .libs/
 .deps/
@@ -82,6 +74,7 @@ config.log
 /Makefile.include
 /aclocal.m4
 /autom4te.cache/
+/build-aux/compile
 /build-aux/config.guess
 /build-aux/config.sub
 /build-aux/install-sh
@@ -333,6 +326,9 @@ lib/cmyth/Makefile
 /project/obj
 /project/output
 
+# /project/cmake
+/project/cmake/xbmc-config.cmake
+
 # /project/Win32BuildSetup/
 /project/Win32BuildSetup/XBMC.log
 /project/Win32BuildSetup/XBMCSetup*.exe
@@ -402,6 +398,8 @@ lib/cmyth/Makefile
 /system/libnfs.dll
 /system/dnssd.dll
 /system/libcec.dll
+/system/pthreadVC2.dll
+/system/libxslt.dll
 
 # /system/cdrip
 /system/cdrip/lame_enc.dll

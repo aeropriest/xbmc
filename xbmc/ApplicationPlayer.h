@@ -60,7 +60,7 @@ public:
   int m_iPlaySpeed;
 
   // player management
-  void CloseFile();
+  void CloseFile(bool reopen = false);
   void ClosePlayer();
   void ClosePlayerGapless(PLAYERCOREID newCore);
   void CreatePlayer(PLAYERCOREID newCore, IPlayerCallback& callback);
@@ -84,7 +84,6 @@ public:
   int   GetAudioStream();
   int   GetAudioStreamCount();
   void  GetAudioStreamInfo(int index, SPlayerAudioStreamInfo &info);
-  int   GetBitsPerSample();
   int   GetCacheLevel() const;
   float GetCachePercentage() const;
   int   GetChapterCount();
@@ -92,15 +91,11 @@ public:
   void  GetChapterName(CStdString& strChapterName);
   void  GetDeinterlaceMethods(std::vector<int> &deinterlaceMethods);
   void  GetDeinterlaceModes(std::vector<int> &deinterlaceModes);
-  bool  GetCurrentSubtitle(CStdString& strSubtitle);
   void  GetGeneralInfo( CStdString& strVideoInfo);
   float GetPercentage() const;
-  int   GetPictureHeight();
-  int   GetPictureWidth();
   CStdString GetPlayerState();
   CStdString GetPlayingTitle();
   void  GetRenderFeatures(std::vector<int> &renderFeatures);
-  int   GetSampleRate();
   void  GetScalingMethods(std::vector<int> &scalingMethods);
   bool  GetStreamDetails(CStreamDetails &details);
   int   GetSubtitle();

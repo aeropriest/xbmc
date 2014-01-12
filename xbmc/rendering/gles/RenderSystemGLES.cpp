@@ -27,6 +27,7 @@
 #include "settings/AdvancedSettings.h"
 #include "RenderSystemGLES.h"
 #include "guilib/MatrixGLES.h"
+#include "windowing/WindowingFactory.h"
 #include "utils/log.h"
 #include "utils/GLUtils.h"
 #include "utils/TimeUtils.h"
@@ -394,11 +395,8 @@ void CRenderSystemGLES::SetCameraPosition(const CPoint &camera, int screenWidth,
   
   CPoint offset = camera - CPoint(screenWidth*0.5f, screenHeight*0.5f);
   
-  GLint viewport[4];
-  glGetIntegerv(GL_VIEWPORT, viewport);
-
-  float w = (float)viewport[2]*0.5f;
-  float h = (float)viewport[3]*0.5f;
+  float w = (float)m_viewPort[2]*0.5f;
+  float h = (float)m_viewPort[3]*0.5f;
 
   g_matrices.MatrixMode(MM_MODELVIEW);
   g_matrices.LoadIdentity();
@@ -409,7 +407,6 @@ void CRenderSystemGLES::SetCameraPosition(const CPoint &camera, int screenWidth,
   g_matrices.Frustum( (-w - offset.x)*0.5f, (w - offset.x)*0.5f, (-h + offset.y)*0.5f, (h + offset.y)*0.5f, h, 100*h);
   g_matrices.MatrixMode(MM_MODELVIEW);
 
-  glGetIntegerv(GL_VIEWPORT, m_viewPort);
   GLfloat* matx;
   matx = g_matrices.GetMatrix(MM_MODELVIEW);
   memcpy(m_view, matx, 16 * sizeof(GLfloat));
@@ -515,14 +512,11 @@ void CRenderSystemGLES::GetViewPort(CRect& viewPort)
 {
   if (!m_bRenderCreated)
     return;
-  
-  GLint glvp[4];
-  glGetIntegerv(GL_VIEWPORT, glvp);
-  
-  viewPort.x1 = glvp[0];
-  viewPort.y1 = m_height - glvp[1] - glvp[3];
-  viewPort.x2 = glvp[0] + glvp[2];
-  viewPort.y2 = viewPort.y1 + glvp[3];
+
+  viewPort.x1 = m_viewPort[0];
+  viewPort.y1 = m_height - m_viewPort[1] - m_viewPort[3];
+  viewPort.x2 = m_viewPort[0] + m_viewPort[2];
+  viewPort.y2 = viewPort.y1 + m_viewPort[3];
 }
 
 // FIXME make me const so that I can accept temporary objects
@@ -533,6 +527,10 @@ void CRenderSystemGLES::SetViewPort(CRect& viewPort)
 
   glScissor((GLint) viewPort.x1, (GLint) (m_height - viewPort.y1 - viewPort.Height()), (GLsizei) viewPort.Width(), (GLsizei) viewPort.Height());
   glViewport((GLint) viewPort.x1, (GLint) (m_height - viewPort.y1 - viewPort.Height()), (GLsizei) viewPort.Width(), (GLsizei) viewPort.Height());
+  m_viewPort[0] = viewPort.x1;
+  m_viewPort[1] = m_height - viewPort.y1 - viewPort.Height();
+  m_viewPort[2] = viewPort.Width();
+  m_viewPort[3] = viewPort.Height();
 }
 
 void CRenderSystemGLES::SetScissors(const CRect &rect)
@@ -558,6 +556,15 @@ void CRenderSystemGLES::InitialiseGUIShader()
     m_pGUIshader = new CGUIShader*[SM_ESHADERCOUNT];
     for (int i = 0; i < SM_ESHADERCOUNT; i++)
     {
+      if (i == SM_TEXTURE_RGBA_OES)
+      {
+        if (!g_Windowing.IsExtSupported("GL_OES_EGL_image_external"))
+        {
+          m_pGUIshader[i] = NULL;
+          continue;
+        }
+      }
+
       m_pGUIshader[i] = new CGUIShader( ShaderNames[i] );
 
       if (!m_pGUIshader[i]->CompileAndLink())

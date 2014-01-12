@@ -479,7 +479,7 @@ bool CGUIWindowPVRCommon::ActionDeleteRecording(CFileItem *item)
 
   /* check if the recording tag is valid */
   CPVRRecording *recTag = (CPVRRecording *) item->GetPVRRecordingInfoTag();
-  if (!recTag || recTag->m_strRecordingId.IsEmpty())
+  if (!recTag || recTag->m_strRecordingId.empty())
     return bReturn;
 
   /* show a confirmation dialog */
@@ -527,25 +527,24 @@ bool CGUIWindowPVRCommon::ActionPlayChannel(CFileItem *item)
 
 bool CGUIWindowPVRCommon::ActionPlayEpg(CFileItem *item)
 {
-  CEpgInfoTag *epgTag = item->GetEPGInfoTag();
-  if (!epgTag)
+  CPVRChannelPtr channel;
+  if (item && item->HasEPGInfoTag() && item->GetEPGInfoTag()->HasPVRChannel())
+    channel = item->GetEPGInfoTag()->ChannelTag();
+  
+  if (!channel || !g_PVRManager.CheckParentalLock(*channel))
     return false;
-
-  CPVRChannelPtr channel = epgTag->ChannelTag();
-  if (!channel || channel->ChannelNumber() > 0 ||
-      !g_PVRManager.CheckParentalLock(*channel))
-    return false;
-
-  PlayBackRet ret = g_application.PlayFile(CFileItem(*channel));
-
-  if (ret == PLAYBACK_FAIL)
+  
+  CFileItem channelItem = CFileItem(*channel);
+  g_application.SwitchToFullScreen();
+  if (!PlayFile(&channelItem))
   {
-    CStdString msg;
-    msg.Format(g_localizeStrings.Get(19035).c_str(), channel->ChannelName().c_str()); // CHANNELNAME could not be played. Check the log for details.
+    // CHANNELNAME could not be played. Check the log for details.
+    CStdString msg = StringUtils::Format(g_localizeStrings.Get(19035).c_str(), channel->ChannelName().c_str());
     CGUIDialogOK::ShowAndGetInput(19033, 0, msg, 0);
+    return false;
   }
-
-  return ret == PLAYBACK_OK;
+  
+  return true;
 }
 
 bool CGUIWindowPVRCommon::ActionDeleteChannel(CFileItem *item)
@@ -708,7 +707,7 @@ bool CGUIWindowPVRCommon::PlayFile(CFileItem *item, bool bPlayMinimized /* = fal
       if (channel && (g_PVRManager.IsPlayingTV() || g_PVRManager.IsPlayingRadio()) &&
          (channel->IsRadio() == g_PVRManager.IsPlayingRadio()))
       {
-        if (channel->StreamURL().IsEmpty())
+        if (channel->StreamURL().empty())
           bSwitchSuccessful = g_application.m_pPlayer->SwitchChannel(*channel);
       }
 
@@ -721,11 +720,10 @@ bool CGUIWindowPVRCommon::PlayFile(CFileItem *item, bool bPlayMinimized /* = fal
 
     if (!bSwitchSuccessful)
     {
-      CStdString msg;
       CStdString channelName = g_localizeStrings.Get(19029); // Channel
       if (channel)
         channelName = channel->ChannelName();
-      msg.Format(g_localizeStrings.Get(19035).c_str(), channelName.c_str()); // CHANNELNAME could not be played. Check the log for details.
+      CStdString msg = StringUtils::Format(g_localizeStrings.Get(19035).c_str(), channelName.c_str()); // CHANNELNAME could not be played. Check the log for details.
 
       CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Error,
               g_localizeStrings.Get(19166), // PVR information
@@ -867,6 +865,8 @@ bool CGUIWindowPVRCommon::OnContextButtonFind(CFileItem *item, CONTEXT_BUTTON bu
         m_parent->m_windowSearch->m_searchfilter.m_strSearchTerm = "\"" + tag.Title() + "\"";
       else if (item->IsPVRRecording())
         m_parent->m_windowSearch->m_searchfilter.m_strSearchTerm = "\"" + item->GetPVRRecordingInfoTag()->m_strTitle + "\"";
+      else if (item->IsPVRTimer())
+        m_parent->m_windowSearch->m_searchfilter.m_strSearchTerm = "\"" + item->GetPVRTimerInfoTag()->m_strTitle + "\"";
 
       m_parent->m_windowSearch->m_bSearchConfirmed = true;
       m_parent->SetLabel(m_iControlButton, 0);

@@ -26,6 +26,7 @@
 
 #include "EpgDatabase.h"
 #include "EpgContainer.h"
+#include "system.h"
 
 using namespace std;
 using namespace dbiplus;
@@ -294,7 +295,7 @@ bool CEpgDatabase::GetLastEpgScanTime(int iEpgId, CDateTime *lastScan)
   CStdString strWhereClause = FormatSQL("idEpg = %u", iEpgId);
   CStdString strValue = GetSingleValue("lastepgscan", "sLastScan", strWhereClause);
 
-  if (!strValue.IsEmpty())
+  if (!strValue.empty())
   {
     lastScan->SetFromDBDateTime(strValue.c_str());
     bReturn = true;

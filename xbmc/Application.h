@@ -49,9 +49,9 @@ class CPlayerController;
 #include "cores/IPlayerCallback.h"
 #include "cores/playercorefactory/PlayerCoreFactory.h"
 #include "PlayListPlayer.h"
-#include "settings/ISettingsHandler.h"
-#include "settings/ISettingCallback.h"
-#include "settings/ISubSettings.h"
+#include "settings/lib/ISettingsHandler.h"
+#include "settings/lib/ISettingCallback.h"
+#include "settings/lib/ISubSettings.h"
 #if !defined(TARGET_WINDOWS) && defined(HAS_DVD_DRIVE)
 #include "storage/DetectDVDType.h"
 #endif
@@ -157,7 +157,7 @@ public:
   void RestartApp();
   void UnloadSkin(bool forReload = false);
   bool LoadUserWindows();
-  void ReloadSkin();
+  void ReloadSkin(bool confirm = false);
   const CStdString& CurrentFile();
   CFileItem& CurrentFileItem();
   virtual bool OnMessage(CGUIMessage& message);
@@ -374,6 +374,7 @@ protected:
   void LoadSkin(const boost::shared_ptr<ADDON::CSkinInfo>& skin);
 
   bool m_skinReloading; // if true we disallow LoadSkin until ReloadSkin is called
+  bool m_skinReverting;
 
   bool m_loggingIn;
 
@@ -453,7 +454,7 @@ protected:
   bool ProcessGamepad(float frameTime);
   bool ProcessEventServer(float frameTime);
   bool ProcessPeripherals(float frameTime);
-  bool ProcessJoystickEvent(const std::string& joystickName, int button, bool isAxis, float fAmount, unsigned int holdTime = 0);
+  bool ProcessJoystickEvent(const std::string& joystickName, int button, short inputType, float fAmount, unsigned int holdTime = 0);
   bool ExecuteInputAction(const CAction &action);
   int  GetActiveWindowID(void);
 

@@ -40,8 +40,9 @@ class CBaseTexture;
 namespace Shaders { class BaseYUV2RGBShader; }
 namespace Shaders { class BaseVideoFilterShader; }
 class COpenMaxVideo;
-class CStageFrightVideo;
+class CDVDVideoCodecStageFright;
 class CDVDMediaCodecInfo;
+class CIMXOutputFrame;
 typedef std::vector<int>     Features;
 
 
@@ -167,10 +168,10 @@ public:
   virtual void         AddProcessor(struct __CVBuffer *cvBufferRef, int index);
 #endif
 #ifdef HAS_LIBSTAGEFRIGHT
-  virtual void         AddProcessor(CStageFrightVideo* stf, EGLImageKHR eglimg, int index);
+  virtual void         AddProcessor(CDVDVideoCodecStageFright* stf, EGLImageKHR eglimg, int index);
 #endif
 #ifdef HAS_IMXVPU
-  virtual void         AddProcessor(CDVDVideoCodecIMX *imx,  int index);
+  virtual void         AddProcessor(CIMXOutputFrame *imx,  int index);
 #endif
 #if defined(TARGET_ANDROID)
   // mediaCodec
@@ -194,6 +195,10 @@ protected:
   void UploadYV12Texture(int index);
   void DeleteYV12Texture(int index);
   bool CreateYV12Texture(int index);
+
+  void UploadNV12Texture(int index);
+  void DeleteNV12Texture(int index);
+  bool CreateNV12Texture(int index);
 
   void UploadCVRefTexture(int index);
   void DeleteCVRefTexture(int index);
@@ -220,7 +225,7 @@ protected:
   void RenderOpenMax(int index, int field);       // OpenMAX rgb texture
   void RenderEglImage(int index, int field);       // Android OES texture
   void RenderCoreVideoRef(int index, int field);  // CoreVideo reference
-  void RenderMediaCodec(int index, int field);    // MediaCodec reference
+  void RenderSurfaceTexture(int index, int field);// MediaCodec rendering using SurfaceTexture
 
   CFrameBufferObject m_fbo;
 
@@ -255,6 +260,10 @@ protected:
     unsigned texwidth;
     unsigned texheight;
 
+    //pixels per texel
+    unsigned pixpertex_x;
+    unsigned pixpertex_y;
+
     unsigned flipindex;
   };
 
@@ -277,10 +286,10 @@ protected:
     struct __CVBuffer *cvBufferRef;
 #endif
 #ifdef HAS_IMXVPU
-    CDVDVideoCodecIMX *imx;
+    CIMXOutputFrame *imxOutputFrame;
 #endif
 #ifdef HAS_LIBSTAGEFRIGHT
-    CStageFrightVideo* stf;
+    CDVDVideoCodecStageFright* stf;
     EGLImageKHR eglimg;
 #endif
 #if defined(TARGET_ANDROID)
@@ -297,7 +306,7 @@ protected:
 
   void LoadPlane( YUVPLANE& plane, int type, unsigned flipindex
                 , unsigned width,  unsigned height
-                , unsigned int stride, void* data );
+                , unsigned int stride, int bpp, void* data );
 
   Shaders::BaseYUV2RGBShader     *m_pYUVShader;
   Shaders::BaseVideoFilterShader *m_pVideoFilterShader;

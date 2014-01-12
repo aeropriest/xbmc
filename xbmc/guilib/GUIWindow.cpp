@@ -41,12 +41,18 @@
 #include "Application.h"
 #include "ApplicationMessenger.h"
 #include "utils/Variant.h"
+#include "utils/StringUtils.h"
 
 #ifdef HAS_PERFORMANCE_SAMPLE
 #include "utils/PerformanceSample.h"
 #endif
 
 using namespace std;
+
+bool CGUIWindow::icompare::operator()(const CStdString &s1, const CStdString &s2) const
+{
+  return StringUtils::CompareNoCase(s1, s2) < 0;
+}
 
 CGUIWindow::CGUIWindow(int id, const CStdString &xmlFile)
 {
@@ -112,7 +118,9 @@ bool CGUIWindow::Load(const CStdString& strFileName, bool bContainsPath)
   else
   {
     // FIXME: strLowerPath needs to eventually go since resToUse can get incorrectly overridden
-    strLowerPath =  g_SkinInfo->GetSkinPath(CStdString(strFileName).ToLower(), &m_coordsRes);
+    std::string strFileNameLower = strFileName;
+    StringUtils::ToLower(strFileNameLower);
+    strLowerPath =  g_SkinInfo->GetSkinPath(strFileNameLower, &m_coordsRes);
     strPath = g_SkinInfo->GetSkinPath(strFileName, &m_coordsRes);
   }
 
@@ -133,7 +141,9 @@ bool CGUIWindow::LoadXML(const CStdString &strPath, const CStdString &strLowerPa
   if (!m_windowXMLRootElement)
   {
     CXBMCTinyXML xmlDoc;
-    if ( !xmlDoc.LoadFile(strPath) && !xmlDoc.LoadFile(CStdString(strPath).ToLower()) && !xmlDoc.LoadFile(strLowerPath))
+    std::string strPathLower = strPath;
+    StringUtils::ToLower(strPathLower);
+    if (!xmlDoc.LoadFile(strPath) && !xmlDoc.LoadFile(strPathLower) && !xmlDoc.LoadFile(strLowerPath))
     {
       CLog::Log(LOGERROR, "unable to load:%s, Line %d\n%s", strPath.c_str(), xmlDoc.ErrorRow(), xmlDoc.ErrorDesc());
       SetID(WINDOW_INVALID);
@@ -219,6 +229,8 @@ bool CGUIWindow::Load(TiXmlElement* pRootElement)
     {
       XMLUtils::GetFloat(pChild, "posx", m_posX);
       XMLUtils::GetFloat(pChild, "posy", m_posY);
+      XMLUtils::GetFloat(pChild, "left", m_posX);
+      XMLUtils::GetFloat(pChild, "top", m_posY);
 
       TiXmlElement *originElement = pChild->FirstChildElement("origin");
       while (originElement)
@@ -435,7 +447,7 @@ CPoint CGUIWindow::GetPosition() const
   for (unsigned int i = 0; i < m_origins.size(); i++)
   {
     // no condition implies true
-    if (!m_origins[i].condition || g_infoManager.GetBoolValue(m_origins[i].condition))
+    if (!m_origins[i].condition || m_origins[i].condition->Get())
     { // found origin
       return CPoint(m_origins[i].x, m_origins[i].y);
     }
@@ -727,7 +739,7 @@ void CGUIWindow::AllocResources(bool forceLoad /*= FALSE */)
     CStdString xmlFile = GetProperty("xmlfile").asString();
     if (xmlFile.size())
     {
-      bool bHasPath = xmlFile.Find("\\") > -1 || xmlFile.Find("/") > -1;
+      bool bHasPath = xmlFile.find("\\") != std::string::npos || xmlFile.find("/") != std::string::npos;
       Load(xmlFile,bHasPath);
     }
   }
@@ -764,6 +776,7 @@ void CGUIWindow::FreeResources(bool forceUnload /*= FALSE */)
   {
     delete m_windowXMLRootElement;
     m_windowXMLRootElement = NULL;
+    m_xmlIncludeConditions.clear();
   }
 }
 
@@ -779,6 +792,7 @@ void CGUIWindow::ClearAll()
   CGUIControlGroup::ClearAll();
   m_windowLoaded = false;
   m_dynamicResourceAlloc = true;
+  m_visibleCondition.reset();
 }
 
 bool CGUIWindow::Initialize()
@@ -955,7 +969,6 @@ void CGUIWindow::SetDefaults()
   m_defaultControl = 0;
   m_posX = m_posY = m_width = m_height = 0;
   m_overlayState = OVERLAY_STATE_PARENT_WINDOW;   // Use parent or previous window's state
-  m_visibleCondition = 0;
   m_previousWindow = WINDOW_INVALID;
   m_animations.clear();
   m_origins.clear();

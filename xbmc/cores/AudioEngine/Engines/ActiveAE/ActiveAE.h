@@ -48,16 +48,18 @@ struct AudioSettings
   std::string device;
   std::string driver;
   std::string passthoughdevice;
-  int mode;
   int channels;
   bool ac3passthrough;
   bool eac3passthrough;
   bool dtspassthrough;
-  bool aacpassthrough;
   bool truehdpassthrough;
   bool dtshdpassthrough;
-  bool multichannellpcm;
   bool stereoupmix;
+  bool normalizelevels;
+  bool passthrough;
+  int config;
+  int guisoundmode;
+  unsigned int samplerate;
   AEQuality resampleQuality;
 };
 
@@ -81,10 +83,10 @@ public:
     STREAMRESAMPLERATIO,
     STREAMFADE,
     STOPSOUND,
-    SOUNDMODE,
     GETSTATE,
     DISPLAYLOST,
     DISPLAYRESET,
+    KEEPCONFIG,
     TIMEOUT,
   };
   enum InSignal
@@ -161,11 +163,13 @@ public:
   float GetWaterLevel();
   void SetSuspended(bool state);
   void SetSinkCacheTotal(float time) { m_sinkCacheTotal = time; }
+  void SetSinkLatency(float time) { m_sinkLatency = time; }
   bool IsSuspended();
   CCriticalSection *GetLock() { return &m_lock; }
 protected:
   float m_sinkDelay;
   float m_sinkCacheTotal;
+  float m_sinkLatency;
   int m_bufferedSamples;
   unsigned int m_sinkSampleRate;
   unsigned int m_sinkUpdate;
@@ -214,9 +218,11 @@ public:
 
   virtual void EnumerateOutputDevices(AEDeviceList &devices, bool passthrough);
   virtual std::string GetDefaultDevice(bool passthrough);
-  virtual bool SupportsRaw();
-  virtual bool SupportsDrain();
+  virtual bool SupportsRaw(AEDataFormat format);
+  virtual bool SupportsSilenceTimeout();
   virtual bool SupportsQualityLevel(enum AEQuality level);
+  virtual bool IsSettingVisible(const std::string &settingId);
+  virtual void KeepConfiguration(unsigned int millis);
 
   virtual void RegisterAudioCallback(IAudioCallback* pCallback);
   virtual void UnregisterAudioCallback();
@@ -246,7 +252,6 @@ protected:
   bool InitSink();
   void DrainSink();
   void UnconfigureSink();
-  bool IsSinkCompatible(const AEAudioFormat format, const std::string &device);
   void Start();
   void Dispose();
   void LoadSettings();
@@ -284,6 +289,7 @@ protected:
   bool m_extError;
   bool m_extDrain;
   XbmcThreads::EndTime m_extDrainTimer;
+  unsigned int m_extKeepConfig;
   bool m_extDeferData;
 
   enum
@@ -302,10 +308,12 @@ protected:
   AudioSettings m_settings;
   CEngineStats m_stats;
   IAEEncoder *m_encoder;
+  std::string m_currDevice;
 
   // buffers
   CActiveAEBufferPoolResample *m_sinkBuffers;
   CActiveAEBufferPoolResample *m_vizBuffers;
+  CActiveAEBufferPool *m_vizBuffersInput;
   CActiveAEBufferPool *m_silenceBuffers;  // needed to drive gui sounds if we have no streams
   CActiveAEBufferPool *m_encoderBuffers;
 
@@ -321,7 +329,6 @@ protected:
   };
   std::list<SoundState> m_sounds_playing;
   std::vector<CActiveAESound*> m_sounds;
-  int m_soundMode;
 
   float m_volume;
   bool m_muted;

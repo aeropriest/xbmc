@@ -25,6 +25,9 @@ using namespace ActiveAE;
 CActiveAEResample::CActiveAEResample()
 {
   m_pContext = NULL;
+  m_loaded = false;
+  if (m_dllAvUtil.Load() && m_dllSwResample.Load())
+    m_loaded = true;
 }
 
 CActiveAEResample::~CActiveAEResample()
@@ -36,9 +39,9 @@ CActiveAEResample::~CActiveAEResample()
   m_dllSwResample.Unload();
 }
 
-bool CActiveAEResample::Init(uint64_t dst_chan_layout, int dst_channels, int dst_rate, AVSampleFormat dst_fmt, int dst_bits, uint64_t src_chan_layout, int src_channels, int src_rate, AVSampleFormat src_fmt, int src_bits, bool upmix, CAEChannelInfo *remapLayout, AEQuality quality)
+bool CActiveAEResample::Init(uint64_t dst_chan_layout, int dst_channels, int dst_rate, AVSampleFormat dst_fmt, int dst_bits, uint64_t src_chan_layout, int src_channels, int src_rate, AVSampleFormat src_fmt, int src_bits, bool upmix, bool normalize, CAEChannelInfo *remapLayout, AEQuality quality)
 {
-  if (!m_dllAvUtil.Load() || !m_dllSwResample.Load())
+  if (!m_loaded)
     return false;
 
   m_dst_chan_layout = dst_chan_layout;
@@ -86,7 +89,7 @@ bool CActiveAEResample::Init(uint64_t dst_chan_layout, int dst_channels, int dst
   // not required for sink stage (remapLayout == true)
   if ((m_dst_fmt == AV_SAMPLE_FMT_FLT || m_dst_fmt == AV_SAMPLE_FMT_FLTP) &&
       (m_src_fmt == AV_SAMPLE_FMT_FLT || m_src_fmt == AV_SAMPLE_FMT_FLTP) &&
-      !remapLayout)
+      !remapLayout && normalize)
   {
      m_dllAvUtil.av_opt_set_double(m_pContext, "rematrix_maxval", 1.0, 0);
   }

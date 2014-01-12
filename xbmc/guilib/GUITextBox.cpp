@@ -22,6 +22,7 @@
 #include "GUIInfoManager.h"
 #include "utils/XBMCTinyXML.h"
 #include "utils/MathUtils.h"
+#include "utils/StringUtils.h"
 
 using namespace std;
 
@@ -40,7 +41,6 @@ CGUITextBox::CGUITextBox(int parentID, int controlID, float posX, float posY, fl
   m_pageControl = 0;
   m_lastRenderTime = 0;
   m_scrollTime = scrollTime;
-  m_autoScrollCondition = 0;
   m_autoScrollTime = 0;
   m_autoScrollDelay = 3000;
   m_autoScrollDelayTime = 0;
@@ -123,7 +123,7 @@ void CGUITextBox::Process(unsigned int currentTime, CDirtyRegionList &dirtyregio
   // update our auto-scrolling as necessary
   if (m_autoScrollTime && m_lines.size() > m_itemsPerPage)
   {
-    if (!m_autoScrollCondition || g_infoManager.GetBoolValue(m_autoScrollCondition))
+    if (!m_autoScrollCondition || m_autoScrollCondition->Get())
     {
       if (m_lastRenderTime)
         m_autoScrollDelayTime += currentTime - m_lastRenderTime;
@@ -354,10 +354,10 @@ CStdString CGUITextBox::GetLabel(int info) const
   switch (info)
   {
   case CONTAINER_NUM_PAGES:
-    label.Format("%u", (GetRows() + m_itemsPerPage - 1) / m_itemsPerPage);
+    label = StringUtils::Format("%u", (GetRows() + m_itemsPerPage - 1) / m_itemsPerPage);
     break;
   case CONTAINER_CURRENT_PAGE:
-    label.Format("%u", GetCurrentPage());
+    label = StringUtils::Format("%u", GetCurrentPage());
     break;
   default:
     break;

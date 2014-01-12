@@ -32,12 +32,15 @@ extern "C"
 {
 #endif
   bool        DarwinIsAppleTV2(void);
+  bool        DarwinIsMavericks(void);
   bool        DarwinHasRetina(void);
   const char *GetDarwinOSReleaseString(void);
   const char *GetDarwinVersionString(void);
   float       GetIOSVersion(void);
   int         GetDarwinFrameworkPath(bool forPython, char* path, uint32_t *pathsize);
   int         GetDarwinExecutablePath(char* path, uint32_t *pathsize);
+  const char *DarwinGetXbmcRootFolder(void);
+  bool        DarwinIsIosSandboxed(void);
   bool        DarwinHasVideoToolboxDecoder(void);
   int         DarwinBatteryLevel(void);
   void        DarwinSetScheduling(int message);

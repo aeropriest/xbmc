@@ -26,6 +26,8 @@
 
 #include "cores/omxplayer/OMXImage.h"
 
+#include "cores/omxplayer/OMXImage.h"
+
 CRBP::CRBP()
 {
   m_initialized     = false;

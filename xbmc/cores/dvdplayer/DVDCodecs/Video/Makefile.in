@@ -16,6 +16,7 @@ SRCS += DVDVideoCodecCrystalHD.cpp
 endif
 ifeq ($(findstring osx,@ARCH@),osx)
 SRCS += DVDVideoCodecVDA.cpp
+SRCS += VDA.cpp
 endif
 ifeq (@USE_OPENMAX@,1)
 SRCS += OpenMax.cpp
@@ -48,13 +49,12 @@ endif
 ifeq (@USE_ANDROID@,1)
 SRCS += DVDVideoCodecAndroidMediaCodec.cpp
 endif
+ifeq (@USE_LIBSTAGEFRIGHT@,1)
+SRCS += DVDVideoCodecStageFright.cpp
+endif
 
 LIB=Video.a
 
 include @abs_top_srcdir@/Makefile.include
 -include $(patsubst %.cpp,%.P,$(patsubst %.c,%.P,$(SRCS)))
-
-ifeq (@USE_LIBSTAGEFRIGHT@,1)
-CXXFLAGS += -Wno-multichar -fno-rtti
-endif
 

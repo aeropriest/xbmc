@@ -51,6 +51,7 @@
 #include "network/ZeroconfBrowser.h"
 #include "GUIUserMessages.h"
 #include "utils/CharsetConverter.h"
+#include "utils/StringUtils.h"
 
 #ifdef TARGET_WINDOWS
 
@@ -472,7 +473,10 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
           }
         }
         if (g_application.GetRenderGUI() != active)
+        {
           g_Windowing.NotifyAppActiveChange(g_application.GetRenderGUI());
+          g_application.SetInBackground(!g_application.GetRenderGUI());
+        }
         CLog::Log(LOGDEBUG, __FUNCTION__"Window is %s", g_application.GetRenderGUI() ? "active" : "inactive");
       }
       break;
@@ -765,8 +769,7 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
               // optical medium
               if (lpdbv -> dbcv_flags & DBTF_MEDIA)
               {
-                CStdString strdrive;
-                strdrive.Format("%c:\\", CWIN32Util::FirstDriveFromMask(lpdbv ->dbcv_unitmask));
+                CStdString strdrive = StringUtils::Format("%c:\\", CWIN32Util::FirstDriveFromMask(lpdbv ->dbcv_unitmask));
                 if(wParam == DBT_DEVICEARRIVAL)
                 {
                   CLog::Log(LOGDEBUG, __FUNCTION__": Drive %s Media has arrived.", strdrive.c_str());

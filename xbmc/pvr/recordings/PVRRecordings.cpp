@@ -27,12 +27,14 @@
 #include "utils/log.h"
 #include "threads/SingleLock.h"
 #include "video/VideoDatabase.h"
+#include "settings/Settings.h"
 
 #include "utils/URIUtils.h"
+#include "utils/StringUtils.h"
+
 #include "pvr/PVRManager.h"
 #include "pvr/addons/PVRClients.h"
 #include "PVRRecordings.h"
-#include "utils/StringUtils.h"
 
 using namespace PVR;
 
@@ -52,7 +54,7 @@ void CPVRRecordings::UpdateFromClients(void)
 CStdString CPVRRecordings::TrimSlashes(const CStdString &strOrig) const
 {
   CStdString strReturn(strOrig);
-  while (strReturn.Left(1) == "/")
+  while (strReturn[0] == '/')
     strReturn.erase(0, 1);
 
   URIUtils::RemoveSlashAtEnd(strReturn);
@@ -67,18 +69,18 @@ const CStdString CPVRRecordings::GetDirectoryFromPath(const CStdString &strPath,
   CStdString strUseBase = TrimSlashes(strBase);
 
   /* strip the base or return an empty value if it doesn't fit or match */
-  if (!strUseBase.IsEmpty())
+  if (!strUseBase.empty())
   {
     /* adding "/" to make sure that base matches the complete folder name and not only parts of it */
-    if (strUsePath.GetLength() <= strUseBase.GetLength() || strUsePath.Left(strUseBase.GetLength() + 1) != strUseBase + "/")
+    if (strUsePath.size() <= strUseBase.size() || !StringUtils::StartsWith(strUsePath, strUseBase + "/"))
       return strReturn;
-    strUsePath.erase(0, strUseBase.GetLength());
+    strUsePath.erase(0, strUseBase.size());
   }
 
   /* check for more occurences */
-  int iDelimiter = strUsePath.Find('/');
-  if (iDelimiter > 0)
-    strReturn = strUsePath.Left(iDelimiter);
+  size_t iDelimiter = strUsePath.find('/');
+  if (iDelimiter != std::string::npos && iDelimiter > 0)
+    strReturn = strUsePath.substr(0, iDelimiter);
   else
     strReturn = strUsePath;
 
@@ -90,7 +92,8 @@ bool CPVRRecordings::IsDirectoryMember(const CStdString &strDirectory, const CSt
   CStdString strUseDirectory = TrimSlashes(strDirectory);
   CStdString strUseEntryDirectory = TrimSlashes(strEntryDirectory);
 
-  return strUseEntryDirectory.Left(strUseDirectory.GetLength()).Equals(strUseDirectory) &&
+  /* Case-insensitive comparison since sub folders are created with case-insensitive matching (GetSubDirectories) */
+  return StringUtils::StartsWithNoCase(strUseEntryDirectory, strUseDirectory) &&
       (!bDirectMember || strUseEntryDirectory.Equals(strUseDirectory));
 }
 
@@ -109,13 +112,13 @@ void CPVRRecordings::GetContents(const CStdString &strDirectory, CFileItemList *
     pFileItem->m_dateTime = current->RecordingTimeAsLocalTime();
     pFileItem->SetPath(current->m_strFileNameAndPath);
 
-    if (!current->m_strIconPath.IsEmpty())
+    if (!current->m_strIconPath.empty())
       pFileItem->SetIconImage(current->m_strIconPath);
 
-    if (!current->m_strThumbnailPath.IsEmpty())
+    if (!current->m_strThumbnailPath.empty())
       pFileItem->SetArt("thumb", current->m_strThumbnailPath);
 
-    if (!current->m_strFanartPath.IsEmpty())
+    if (!current->m_strFanartPath.empty())
       pFileItem->SetArt("fanart", current->m_strFanartPath);
 
     pFileItem->SetOverlayImage(CGUIListItem::ICON_OVERLAY_UNWATCHED, pFileItem->GetPVRRecordingInfoTag()->m_playCount > 0);
@@ -124,7 +127,7 @@ void CPVRRecordings::GetContents(const CStdString &strDirectory, CFileItemList *
   }
 }
 
-void CPVRRecordings::GetSubDirectories(const CStdString &strBase, CFileItemList *results, bool bAutoSkip /* = true */)
+void CPVRRecordings::GetSubDirectories(const CStdString &strBase, CFileItemList *results)
 {
   CStdString strUseBase = TrimSlashes(strBase);
 
@@ -134,14 +137,14 @@ void CPVRRecordings::GetSubDirectories(const CStdString &strBase, CFileItemList 
   {
     CPVRRecording *current = m_recordings.at(iRecordingPtr);
     const CStdString strCurrent = GetDirectoryFromPath(current->m_strDirectory, strUseBase);
-    if (strCurrent.IsEmpty())
+    if (strCurrent.empty())
       continue;
 
     CStdString strFilePath;
     if(strUseBase.empty())
-      strFilePath.Format("pvr://recordings/%s/", strCurrent.c_str());
+      strFilePath = StringUtils::Format("pvr://recordings/%s/", strCurrent.c_str());
     else
-      strFilePath.Format("pvr://recordings/%s/%s/", strUseBase.c_str(), strCurrent.c_str());
+      strFilePath = StringUtils::Format("pvr://recordings/%s/%s/", strUseBase.c_str(), strCurrent.c_str());
 
     if (!results->Contains(strFilePath))
     {
@@ -184,16 +187,15 @@ void CPVRRecordings::GetSubDirectories(const CStdString &strBase, CFileItemList 
   CFileItemList files;
   GetContents(strBase, &files);
 
-  if (bAutoSkip && results->Size() == 1 && files.Size() == 0)
+  if (results->Size() == 1 && files.Size() == 0)
   {
-    CStdString strGetPath;
-    strGetPath.Format("%s/%s/", strUseBase.c_str(), results->Get(0)->GetLabel());
+    CStdString strGetPath = StringUtils::Format("%s/%s/", strUseBase.c_str(), results->Get(0)->GetLabel().c_str());
 
     results->Clear();
 
     CLog::Log(LOGDEBUG, "CPVRRecordings - %s - '%s' only has 1 subdirectory, selecting that directory ('%s')",
         __FUNCTION__, strUseBase.c_str(), strGetPath.c_str());
-    GetSubDirectories(strGetPath, results, true);
+    GetSubDirectories(strGetPath, results);
     return;
   }
 
@@ -208,7 +210,7 @@ void CPVRRecordings::GetSubDirectories(const CStdString &strBase, CFileItemList 
     if(strUseBase.empty())
       strAllPath = "pvr://recordings";
     else
-      strAllPath.Format("pvr://recordings/%s", strUseBase.c_str());
+      strAllPath = StringUtils::Format("pvr://recordings/%s", strUseBase.c_str());
     pItem->SetPath(AddAllRecordingsPathExtension(strAllPath));
     pItem->SetSpecialSort(SortSpecialOnTop);
     pItem->SetLabelPreformated(true);
@@ -221,6 +223,16 @@ void CPVRRecordings::GetSubDirectories(const CStdString &strBase, CFileItemList 
     }
     results->AddFront(pItem, 0);
   }
+
+  // Add parent directory item
+  if (!strUseBase.empty() && (subDirectories > 0 || files.Size() > 0) && CSettings::Get().GetBool("filelists.showparentdiritems"))
+  {
+    CStdString strLabel("..");
+    CFileItemPtr pItem(new CFileItem(strLabel));
+    pItem->SetPath("pvr://recordings");
+    pItem->m_bIsShareOrDrive = false;
+    results->AddFront(pItem, 0);
+  }
 }
 
 bool CPVRRecordings::HasAllRecordingsPathExtension(const CStdString &strDirectory)
@@ -228,13 +240,13 @@ bool CPVRRecordings::HasAllRecordingsPathExtension(const CStdString &strDirector
   CStdString strUseDir = TrimSlashes(strDirectory);
   CStdString strAllRecordingsPathExtension(PVR_ALL_RECORDINGS_PATH_EXTENSION);
 
-  if (strUseDir.GetLength() < strAllRecordingsPathExtension.GetLength())
+  if (strUseDir.size() < strAllRecordingsPathExtension.size())
     return false;
 
-  if (strUseDir.GetLength() == strAllRecordingsPathExtension.GetLength())
+  if (strUseDir.size() == strAllRecordingsPathExtension.size())
     return strUseDir.Equals(strAllRecordingsPathExtension);
 
-  return strUseDir.Right(strAllRecordingsPathExtension.GetLength() + 1).Equals("/" + strAllRecordingsPathExtension);
+  return StringUtils::EndsWith(strUseDir, "/" + strAllRecordingsPathExtension);
 }
 
 CStdString CPVRRecordings::AddAllRecordingsPathExtension(const CStdString &strDirectory)
@@ -254,7 +266,7 @@ CStdString CPVRRecordings::RemoveAllRecordingsPathExtension(const CStdString &st
   if (!HasAllRecordingsPathExtension(strDirectory))
     return strDirectory;
 
-  return strDirectory.Left(strDirectory.GetLength() - strlen(PVR_ALL_RECORDINGS_PATH_EXTENSION) - 1);
+  return strDirectory.substr(0, strDirectory.size() - strlen(PVR_ALL_RECORDINGS_PATH_EXTENSION) - 1);
 }
 
 int CPVRRecordings::Load(void)
@@ -397,10 +409,10 @@ bool CPVRRecordings::GetDirectory(const CStdString& strPath, CFileItemList &item
     CStdString strFileName = url.GetFileName();
     URIUtils::RemoveSlashAtEnd(strFileName);
 
-    if (strFileName.Left(10) == "recordings")
+    if (StringUtils::StartsWith(strFileName, "recordings"))
     {
       strFileName.erase(0, 10);
-      GetSubDirectories(strFileName, &items, true);
+      GetSubDirectories(strFileName, &items);
       bSuccess = true;
     }
   }
@@ -452,7 +464,7 @@ CFileItemPtr CPVRRecordings::GetByPath(const CStdString &path)
 
   CSingleLock lock(m_critSection);
 
-  if (fileName.Left(11) == "recordings/")
+  if (StringUtils::StartsWith(fileName, "recordings/"))
   {
     for (unsigned int iRecordingPtr = 0; iRecordingPtr < m_recordings.size(); iRecordingPtr++)
     {

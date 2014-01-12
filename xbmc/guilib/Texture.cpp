@@ -36,10 +36,6 @@
 #include "filesystem/AndroidAppFile.h"
 #endif
 
-#if defined(HAS_OMXPLAYER)
-#include "xbmc/cores/omxplayer/OMXImage.h"
-#endif
-
 /************************************************************************/
 /*                                                                      */
 /************************************************************************/
@@ -101,8 +97,13 @@ void CBaseTexture::Allocate(unsigned int width, unsigned int height, unsigned in
   CLAMP(m_textureHeight, g_Windowing.GetMaxTextureSize());
   CLAMP(m_imageWidth, m_textureWidth);
   CLAMP(m_imageHeight, m_textureHeight);
+
   delete[] m_pixels;
-  m_pixels = new unsigned char[GetPitch() * GetRows()];
+  m_pixels = NULL;
+  if (GetPitch() * GetRows() > 0)
+  {
+    m_pixels = new unsigned char[GetPitch() * GetRows()];
+  }
 }
 
 void CBaseTexture::Update(unsigned int width, unsigned int height, unsigned int pitch, unsigned int format, const unsigned char *pixels, bool loadToGPU)
@@ -174,7 +175,7 @@ void CBaseTexture::ClampToEdge()
   }
 }
 
-CBaseTexture *CBaseTexture::LoadFromFile(const CStdString& texturePath, unsigned int idealWidth, unsigned int idealHeight, bool autoRotate)
+CBaseTexture *CBaseTexture::LoadFromFile(const CStdString& texturePath, unsigned int idealWidth, unsigned int idealHeight, bool autoRotate, bool requirePixels)
 {
 #if defined(TARGET_ANDROID)
   CURL url(texturePath);
@@ -202,7 +203,7 @@ CBaseTexture *CBaseTexture::LoadFromFile(const CStdString& texturePath, unsigned
   }
 #endif
   CTexture *texture = new CTexture();
-  if (texture->LoadFromFileInternal(texturePath, idealWidth, idealHeight, autoRotate))
+  if (texture->LoadFromFileInternal(texturePath, idealWidth, idealHeight, autoRotate, requirePixels))
     return texture;
   delete texture;
   return NULL;
@@ -217,33 +218,8 @@ CBaseTexture *CBaseTexture::LoadFromFileInMemory(unsigned char *buffer, size_t b
   return NULL;
 }
 
-bool CBaseTexture::LoadFromFileInternal(const CStdString& texturePath, unsigned int maxWidth, unsigned int maxHeight, bool autoRotate)
+bool CBaseTexture::LoadFromFileInternal(const CStdString& texturePath, unsigned int maxWidth, unsigned int maxHeight, bool autoRotate, bool requirePixels)
 {
-#if defined(HAS_OMXPLAYER)
-  if (URIUtils::HasExtension(texturePath, ".jpg|.tbn")
-      /*|| URIUtils::HasExtension(texturePath, ".png")*/)
-  {
-    COMXImageFile *file = COMXImage::LoadJpeg(texturePath);
-    if (file)
-    {
-      bool okay = false;
-      int orientation = file->GetOrientation();
-      // limit the sizes of jpegs (even if we fail to decode)
-      COMXImage::ClampLimits(maxWidth, maxHeight, file->GetWidth(), file->GetHeight(), orientation & 4);
-      Allocate(maxWidth, maxHeight, XB_FMT_A8R8G8B8);
-      if (m_pixels && COMXImage::DecodeJpeg(file, maxWidth, GetRows(), GetPitch(), (void *)m_pixels))
-      {
-        m_hasAlpha = false;
-        if (autoRotate && orientation)
-          m_orientation = orientation - 1;
-        okay = true;
-      }
-      COMXImage::CloseJpeg(file);
-      if (okay)
-        return true;
-    }
-  }
-#endif
   if (URIUtils::HasExtension(texturePath, ".dds"))
   { // special case for DDS images
     CDDSImage image;

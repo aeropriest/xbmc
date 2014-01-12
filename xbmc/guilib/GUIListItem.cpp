@@ -22,9 +22,15 @@
 #include "GUIListItemLayout.h"
 #include "utils/Archive.h"
 #include "utils/CharsetConverter.h"
+#include "utils/StringUtils.h"
 #include "utils/Variant.h"
 
 using namespace std;
+
+bool CGUIListItem::icompare::operator()(const CStdString &s1, const CStdString &s2) const
+{
+  return StringUtils::CompareNoCase(s1, s2) < 0;
+}
 
 CGUIListItem::CGUIListItem(const CGUIListItem& item)
 {
@@ -69,7 +75,7 @@ void CGUIListItem::SetLabel(const CStdString& strLabel)
   if (m_strLabel == strLabel)
     return;
   m_strLabel = strLabel;
-  if (m_sortLabel.IsEmpty())
+  if (m_sortLabel.empty())
     SetSortLabel(strLabel);
   SetInvalid();
 }
@@ -321,6 +327,7 @@ void CGUIListItem::Archive(CArchive &ar)
       ar >> value;
       m_artFallbacks.insert(make_pair(key, value));
     }
+    SetInvalid();
   }
 }
 void CGUIListItem::Serialize(CVariant &value)
@@ -394,7 +401,17 @@ void CGUIListItem::SetInvalid()
 
 void CGUIListItem::SetProperty(const CStdString &strKey, const CVariant &value)
 {
-  m_mapProperties[strKey] = value;
+  PropertyMap::iterator iter = m_mapProperties.find(strKey);
+  if (iter == m_mapProperties.end())
+  {
+    m_mapProperties.insert(make_pair(strKey, value));
+    SetInvalid();
+  }
+  else if (iter->second != value)
+  {
+    iter->second = value;
+    SetInvalid();
+  }
 }
 
 CVariant CGUIListItem::GetProperty(const CStdString &strKey) const
@@ -419,12 +436,19 @@ void CGUIListItem::ClearProperty(const CStdString &strKey)
 {
   PropertyMap::iterator iter = m_mapProperties.find(strKey);
   if (iter != m_mapProperties.end())
+  {
     m_mapProperties.erase(iter);
+    SetInvalid();
+  }
 }
 
 void CGUIListItem::ClearProperties()
 {
-  m_mapProperties.clear();
+  if (!m_mapProperties.empty())
+  {
+    m_mapProperties.clear();
+    SetInvalid();
+  }
 }
 
 void CGUIListItem::IncrementProperty(const CStdString &strKey, int nVal)

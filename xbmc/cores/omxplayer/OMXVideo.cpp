@@ -92,6 +92,7 @@ COMXVideo::~COMXVideo()
 
 bool COMXVideo::SendDecoderConfig()
 {
+  CSingleLock lock (m_critSection);
   OMX_ERRORTYPE omx_err   = OMX_ErrorNone;
 
   /* send decoder config */
@@ -144,6 +145,7 @@ bool COMXVideo::NaluFormatStartCodes(enum AVCodecID codec, uint8_t *in_extradata
 
 bool COMXVideo::PortSettingsChanged()
 {
+  CSingleLock lock (m_critSection);
   OMX_ERRORTYPE omx_err   = OMX_ErrorNone;
 
   if (m_settings_changed)
@@ -280,14 +282,14 @@ bool COMXVideo::PortSettingsChanged()
 
   m_omx_tunnel_clock.Initialize(m_omx_clock, m_omx_clock->GetInputPort()  + 1, &m_omx_sched, m_omx_sched.GetOutputPort()  + 1);
 
-  omx_err = m_omx_tunnel_clock.Establish(false);
+  omx_err = m_omx_tunnel_clock.Establish();
   if(omx_err != OMX_ErrorNone)
   {
     CLog::Log(LOGERROR, "%s::%s - m_omx_tunnel_clock.Establish omx_err(0x%08x)", CLASSNAME, __func__, omx_err);
     return false;
   }
 
-  omx_err = m_omx_tunnel_decoder.Establish(false);
+  omx_err = m_omx_tunnel_decoder.Establish();
   if(omx_err != OMX_ErrorNone)
   {
     CLog::Log(LOGERROR, "%s::%s - m_omx_tunnel_decoder.Establish omx_err(0x%08x)", CLASSNAME, __func__, omx_err);
@@ -296,7 +298,7 @@ bool COMXVideo::PortSettingsChanged()
 
   if(m_deinterlace)
   {
-    omx_err = m_omx_tunnel_image_fx.Establish(false);
+    omx_err = m_omx_tunnel_image_fx.Establish();
     if(omx_err != OMX_ErrorNone)
     {
       CLog::Log(LOGERROR, "%s::%s - m_omx_tunnel_image_fx.Establish omx_err(0x%08x)", CLASSNAME, __func__, omx_err);
@@ -311,7 +313,7 @@ bool COMXVideo::PortSettingsChanged()
     }
   }
 
-  omx_err = m_omx_tunnel_sched.Establish(false);
+  omx_err = m_omx_tunnel_sched.Establish();
   if(omx_err != OMX_ErrorNone)
   {
     CLog::Log(LOGERROR, "%s::%s - m_omx_tunnel_sched.Establish omx_err(0x%08x)", CLASSNAME, __func__, omx_err);
@@ -338,6 +340,7 @@ bool COMXVideo::PortSettingsChanged()
 
 bool COMXVideo::Open(CDVDStreamInfo &hints, OMXClock *clock, EDEINTERLACEMODE deinterlace, bool hdmi_clock_sync)
 {
+  CSingleLock lock (m_critSection);
   bool vflip = false;
   Close();
   OMX_ERRORTYPE omx_err   = OMX_ErrorNone;
@@ -674,6 +677,7 @@ bool COMXVideo::Open(CDVDStreamInfo &hints, OMXClock *clock, EDEINTERLACEMODE de
 
 void COMXVideo::Close()
 {
+  CSingleLock lock (m_critSection);
   m_omx_tunnel_clock.Deestablish();
   m_omx_tunnel_decoder.Deestablish();
   if(m_deinterlace)
@@ -682,11 +686,11 @@ void COMXVideo::Close()
 
   m_omx_decoder.FlushInput();
 
-  m_omx_sched.Deinitialize(true);
-  m_omx_decoder.Deinitialize(true);
+  m_omx_sched.Deinitialize();
+  m_omx_decoder.Deinitialize();
   if(m_deinterlace)
-    m_omx_image_fx.Deinitialize(true);
-  m_omx_render.Deinitialize(true);
+    m_omx_image_fx.Deinitialize();
+  m_omx_render.Deinitialize();
 
   m_is_open       = false;
 
@@ -710,19 +714,22 @@ void COMXVideo::SetDropState(bool bDrop)
 
 unsigned int COMXVideo::GetFreeSpace()
 {
+  CSingleLock lock (m_critSection);
   return m_omx_decoder.GetInputBufferSpace();
 }
 
 unsigned int COMXVideo::GetSize()
 {
+  CSingleLock lock (m_critSection);
   return m_omx_decoder.GetInputBufferSize();
 }
 
 int COMXVideo::Decode(uint8_t *pData, int iSize, double pts)
 {
+  CSingleLock lock (m_critSection);
   OMX_ERRORTYPE omx_err;
 
-  if( m_drop_state )
+  if( m_drop_state || !m_is_open )
     return true;
 
   unsigned int demuxer_bytes = (unsigned int)iSize;
@@ -749,7 +756,7 @@ int COMXVideo::Decode(uint8_t *pData, int iSize, double pts)
         CLog::Log(LOGDEBUG, "OMXVideo::Decode VDec : setStartTime %f\n", (pts == DVD_NOPTS_VALUE ? 0.0 : pts) / DVD_TIME_BASE);
         m_setStartTime = false;
       }
-      if(pts == DVD_NOPTS_VALUE)
+      else if(pts == DVD_NOPTS_VALUE)
         omx_buffer->nFlags |= OMX_BUFFERFLAG_TIME_UNKNOWN;
 
       omx_buffer->nTimeStamp = ToOMXTime((uint64_t)(pts == DVD_NOPTS_VALUE) ? 0 : pts);
@@ -810,16 +817,20 @@ int COMXVideo::Decode(uint8_t *pData, int iSize, double pts)
 
 void COMXVideo::Reset(void)
 {
+  CSingleLock lock (m_critSection);
   if(!m_is_open)
     return;
 
   m_setStartTime = true;
   m_omx_decoder.FlushInput();
+  if(m_deinterlace)
+    m_omx_image_fx.FlushInput();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 void COMXVideo::SetVideoRect(const CRect& SrcRect, const CRect& DestRect)
 {
+  CSingleLock lock (m_critSection);
   if(!m_is_open)
     return;
 
@@ -850,11 +861,13 @@ void COMXVideo::SetVideoRect(const CRect& SrcRect, const CRect& DestRect)
 
 int COMXVideo::GetInputBufferSize()
 {
+  CSingleLock lock (m_critSection);
   return m_omx_decoder.GetInputBufferSize();
 }
 
 void COMXVideo::SubmitEOS()
 {
+  CSingleLock lock (m_critSection);
   if(!m_is_open)
     return;
 
@@ -888,6 +901,7 @@ void COMXVideo::SubmitEOS()
 
 bool COMXVideo::IsEOS()
 {
+  CSingleLock lock (m_critSection);
   if(!m_is_open)
     return true;
   if (!m_failed_eos && !m_omx_render.IsEOS())

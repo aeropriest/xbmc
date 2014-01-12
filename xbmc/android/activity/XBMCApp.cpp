@@ -85,6 +85,7 @@ CEvent CXBMCApp::m_windowCreated;
 ANativeActivity *CXBMCApp::m_activity = NULL;
 ANativeWindow* CXBMCApp::m_window = NULL;
 int CXBMCApp::m_batteryLevel = 0;
+int CXBMCApp::m_initialVolume = 0;
 
 CXBMCApp::CXBMCApp(ANativeActivity* nativeActivity)
   : CJNIContext(nativeActivity)
@@ -132,6 +133,10 @@ void CXBMCApp::onResume()
 void CXBMCApp::onPause()
 {
   android_printf("%s: ", __PRETTY_FUNCTION__);
+
+  // Restore volume
+  SetSystemVolume(m_initialVolume);
+
   unregisterReceiver(*this);
 }
 
@@ -246,6 +251,8 @@ void CXBMCApp::run()
   int status = 0;
 
   SetupEnv();
+  
+  m_initialVolume = GetSystemVolume();
 
   CJNIIntent startIntent = getIntent();
   android_printf("XBMC Started with action: %s\n",startIntent.getAction().c_str());
@@ -394,17 +401,32 @@ bool CXBMCApp::HasLaunchIntent(const string &package)
 // Note intent, dataType, dataURI all default to ""
 bool CXBMCApp::StartActivity(const string &package, const string &intent, const string &dataType, const string &dataURI)
 {
-  CJNIIntent newIntent = GetPackageManager().getLaunchIntentForPackage(package);
+  CJNIIntent newIntent = intent.empty() ?
+    GetPackageManager().getLaunchIntentForPackage(package) :
+    CJNIIntent(intent);
+
   if (!newIntent)
     return false;
 
   if (!dataURI.empty())
-    newIntent.setData(dataURI);
+  {
+    CJNIURI jniURI = CJNIURI::parse(dataURI);
 
-  if (!intent.empty())
-    newIntent.setAction(intent);
+    if (!jniURI)
+      return false;
 
-   startActivity(newIntent);
+    newIntent.setDataAndType(jniURI, dataType); 
+  }
+
+  newIntent.setPackage(package);
+  startActivity(newIntent);
+  if (xbmc_jnienv()->ExceptionOccurred())
+  {
+    CLog::Log(LOGERROR, "CXBMCApp::StartActivity - ExceptionOccurred launching %s", package.c_str());
+    xbmc_jnienv()->ExceptionClear();
+    return false;
+  }
+
   return true;
 }
 
@@ -500,7 +522,7 @@ int CXBMCApp::GetMaxSystemVolume()
   {
     maxVolume = GetMaxSystemVolume(env);
   }
-  android_printf("CXBMCApp::GetMaxSystemVolume: %i",maxVolume);
+  //android_printf("CXBMCApp::GetMaxSystemVolume: %i",maxVolume);
   return maxVolume;
 }
 
@@ -509,8 +531,29 @@ int CXBMCApp::GetMaxSystemVolume(JNIEnv *env)
   CJNIAudioManager audioManager(getSystemService("audio"));
   if (audioManager)
     return audioManager.getStreamMaxVolume();
-    android_printf("CXBMCApp::SetSystemVolume: Could not get Audio Manager");
+  android_printf("CXBMCApp::SetSystemVolume: Could not get Audio Manager");
   return 0;
+}
+
+int CXBMCApp::GetSystemVolume()
+{
+  CJNIAudioManager audioManager(getSystemService("audio"));
+  if (audioManager)
+    return audioManager.getStreamVolume();
+  else 
+  {
+    android_printf("CXBMCApp::GetSystemVolume: Could not get Audio Manager");
+    return 0;
+  }
+}
+
+void CXBMCApp::SetSystemVolume(int val)
+{
+  CJNIAudioManager audioManager(getSystemService("audio"));
+  if (audioManager)
+    audioManager.setStreamVolume(val);
+  else
+    android_printf("CXBMCApp::SetSystemVolume: Could not get Audio Manager");
 }
 
 void CXBMCApp::SetSystemVolume(JNIEnv *env, float percent)

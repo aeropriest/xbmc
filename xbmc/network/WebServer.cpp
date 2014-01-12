@@ -75,15 +75,21 @@ CWebServer::CWebServer()
 
 int CWebServer::FillArgumentMap(void *cls, enum MHD_ValueKind kind, const char *key, const char *value) 
 {
+  if (cls == NULL || key == NULL)
+    return MHD_NO;
+
   map<string, string> *arguments = (map<string, string> *)cls;
-  arguments->insert(pair<string,string>(key,value));
+  arguments->insert(pair<string, string>(key, value != NULL ? value : StringUtils::Empty));
   return MHD_YES; 
 }
 
 int CWebServer::FillArgumentMultiMap(void *cls, enum MHD_ValueKind kind, const char *key, const char *value) 
 {
+  if (cls == NULL || key == NULL)
+    return MHD_NO;
+
   multimap<string, string> *arguments = (multimap<string, string> *)cls;
-  arguments->insert(pair<string,string>(key,value));
+  arguments->insert(pair<string, string>(key, value != NULL ? value : StringUtils::Empty));
   return MHD_YES; 
 }
 
@@ -402,7 +408,7 @@ int CWebServer::CreateFileDownloadResponse(struct MHD_Connection *connection, co
 
     // get the MIME type for the Content-Type header
     CStdString ext = URIUtils::GetExtension(strURL);
-    ext = ext.ToLower();
+    StringUtils::ToLower(ext);
     string mimeType = CreateMimeTypeFromExtension(ext.c_str());
 
     if (methodType != HEAD)
@@ -537,8 +543,7 @@ int CWebServer::CreateFileDownloadResponse(struct MHD_Connection *connection, co
     {
       getData = false;
 
-      CStdString contentLength;
-      contentLength.Format("%" PRId64, fileLength);
+      CStdString contentLength = StringUtils::Format("%" PRId64, fileLength);
 
       response = MHD_create_response_from_data(0, NULL, MHD_NO, MHD_NO);
       if (response == NULL)
@@ -843,8 +848,8 @@ bool CWebServer::PrepareDownload(const char *path, CVariant &details, std::strin
     protocol = "http";
     string url;
     CStdString strPath = path;
-    if (strPath.Left(8) == "image://" ||
-       (strPath.Left(10) == "special://" && strPath.Right(4) == ".tbn"))
+    if (StringUtils::StartsWith(strPath, "image://") ||
+       (StringUtils::StartsWith(strPath, "special://") && StringUtils::EndsWith(strPath, ".tbn")))
       url = "image/";
     else
       url = "vfs/";

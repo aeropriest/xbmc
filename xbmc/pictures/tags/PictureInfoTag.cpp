@@ -128,7 +128,7 @@ bool CPictureInfoTag::Load(const CStdString &path)
   m_isLoaded = false;
 
   DllLibExif exifDll;
-  if (path.IsEmpty() || !exifDll.Load())
+  if (path.empty() || !exifDll.Load())
     return false;
 
   if (exifDll.process_jpeg(path.c_str(), &m_exifInfo, &m_iptcInfo))
@@ -368,8 +368,8 @@ void CPictureInfoTag::GetStringFromArchive(CArchive &ar, char *string, size_t le
 {
   CStdString temp;
   ar >> temp;
-  length = min((size_t)temp.GetLength(), length - 1);
-  if (!temp.IsEmpty())
+  length = min((size_t)temp.size(), length - 1);
+  if (!temp.empty())
     memcpy(string, temp.c_str(), length);
   string[length] = 0;
 }
@@ -383,7 +383,7 @@ const CStdString CPictureInfoTag::GetInfo(int info) const
   switch (info)
   {
   case SLIDE_RESOLUTION:
-    value.Format("%d x %d", m_exifInfo.Width, m_exifInfo.Height);
+    value = StringUtils::Format("%d x %d", m_exifInfo.Width, m_exifInfo.Height);
     break;
   case SLIDE_COLOUR:
     value = m_exifInfo.IsColor ? "Colour" : "Black and White";
@@ -488,6 +488,24 @@ const CStdString CPictureInfoTag::GetInfo(int info) const
       break;
     case SLIDE_EXIF_EXPOSURE:
       switch (m_exifInfo.ExposureProgram)
+=======
+    break;
+  case SLIDE_EXIF_FOCAL_LENGTH:
+    if (m_exifInfo.FocalLength)
+    {
+      value = StringUtils::Format("%4.2fmm", m_exifInfo.FocalLength);
+      if (m_exifInfo.FocalLength35mmEquiv != 0)
+        value += StringUtils::Format("  (35mm Equivalent = %umm)", m_exifInfo.FocalLength35mmEquiv);
+    }
+    break;
+  case SLIDE_EXIF_FOCUS_DIST:
+    if (m_exifInfo.Distance < 0)
+      value = "Infinite";
+    else if (m_exifInfo.Distance > 0)
+      value = StringUtils::Format("%4.2fm", m_exifInfo.Distance);
+    break;
+  case SLIDE_EXIF_EXPOSURE:
+    switch (m_exifInfo.ExposureProgram)
     {
       case 1:  value = "Manual";              break;
       case 2:  value = "Program (Auto)";     break;
@@ -516,6 +534,25 @@ const CStdString CPictureInfoTag::GetInfo(int info) const
       break;
     case SLIDE_EXIF_EXPOSURE_MODE:
       switch (m_exifInfo.ExposureMode)
+    break;
+  case SLIDE_EXIF_EXPOSURE_TIME:
+    if (m_exifInfo.ExposureTime)
+    {
+      if (m_exifInfo.ExposureTime < 0.010f)
+        value = StringUtils::Format("%6.4fs", m_exifInfo.ExposureTime);
+      else
+        value = StringUtils::Format("%5.3fs", m_exifInfo.ExposureTime);
+      if (m_exifInfo.ExposureTime <= 0.5)
+        value += StringUtils::Format(" (1/%d)", (int)(0.5 + 1/m_exifInfo.ExposureTime));
+    }
+    break;
+  case SLIDE_EXIF_EXPOSURE_BIAS:
+    if (m_exifInfo.ExposureBias != 0)
+      value = StringUtils::Format("%4.2f EV", m_exifInfo.ExposureBias);
+    break;
+  case SLIDE_EXIF_EXPOSURE_MODE:
+    switch (m_exifInfo.ExposureMode)
+>>>>>>> 11bfb5ef17041890dca4c0bed94bf7a20d1bc4b8:xbmc/pictures/PictureInfoTag.cpp
     {
       case 0:  value = "Automatic";          break;
       case 1:  value = "Manual";             break;
@@ -731,12 +768,12 @@ void CPictureInfoTag::ConvertDateTime()
   if (strlen(m_exifInfo.DateTime) >= 19 && m_exifInfo.DateTime[0] != ' ')
   {
     CStdString dateTime = m_exifInfo.DateTime;
-    int year  = atoi(dateTime.Mid(0, 4).c_str());
-    int month = atoi(dateTime.Mid(5, 2).c_str());
-    int day   = atoi(dateTime.Mid(8, 2).c_str());
-    int hour  = atoi(dateTime.Mid(11,2).c_str());
-    int min   = atoi(dateTime.Mid(14,2).c_str());
-    int sec   = atoi(dateTime.Mid(17,2).c_str());
+    int year  = atoi(dateTime.substr(0, 4).c_str());
+    int month = atoi(dateTime.substr(5, 2).c_str());
+    int day   = atoi(dateTime.substr(8, 2).c_str());
+    int hour  = atoi(dateTime.substr(11,2).c_str());
+    int min   = atoi(dateTime.substr(14,2).c_str());
+    int sec   = atoi(dateTime.substr(17,2).c_str());
     m_dateTimeTaken.SetDateTime(year, month, day, hour, min, sec);
   }
 }

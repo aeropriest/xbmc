@@ -54,9 +54,9 @@ struct textureinfo {
   int width, height;
   GLuint texture;
   EGLImageKHR egl_image;
-  sem_t sync;
   void *parent;
   const char *filename;
+  CEvent sync;
 };
 
 protected:
@@ -84,8 +84,8 @@ private:
   EGLContext m_egl_context;
 
   void CreateContext();
-  pthread_mutex_t   m_texqueue_mutex;
-  pthread_cond_t    m_texqueue_cond;
+  CCriticalSection               m_texqueue_lock;
+  XbmcThreads::ConditionVariable m_texqueue_cond;
   std::queue <struct textureinfo *> m_texqueue;
   void AllocTextureInternal(struct textureinfo *tex);
   void DestroyTextureInternal(struct textureinfo *tex);
@@ -202,5 +202,5 @@ protected:
 };
 
 extern COMXImage g_OMXImage;
->>>>>>> 8792600... more stuff
+
 #endif

@@ -39,6 +39,7 @@
 #include "settings/MediaSettings.h"
 #include "boost/shared_ptr.hpp"
 #include "utils/AutoPtrHandle.h"
+#include "utils/StringUtils.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/MediaSettings.h"
 #include "cores/VideoRenderers/RenderManager.h"
@@ -270,8 +271,7 @@ static const pci_device NoDeintProcForProgDevices[] = {
 
 static CStdString GUIDToString(const GUID& guid)
 {
-  CStdString buffer;
-  buffer.Format("%08X-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x"
+  CStdString buffer = StringUtils::Format("%08X-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x"
               , guid.Data1, guid.Data2, guid.Data3
               , guid.Data4[0], guid.Data4[1]
               , guid.Data4[2], guid.Data4[3], guid.Data4[4]
@@ -447,6 +447,13 @@ static bool CheckCompatibility(AVCodecContext *avctx)
     return false;
   }
 
+  // there are many corrupt mpeg2 rips from dvd's which don't
+  // follow profile spec properly, they go corrupt on hw, so
+  // keep those running in software for the time being.
+  if (avctx->codec_id  == AV_CODEC_ID_MPEG2VIDEO
+  &&  avctx->height    <= 576
+  &&  avctx->width     <= 720)
+    return false;
 
   // Check for hardware limited to H264 L4.1 (ie Bluray).
 

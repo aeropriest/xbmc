@@ -431,6 +431,7 @@ public:
   bool LoadVideoInfo(const CStdString& strFilenameAndPath, CVideoInfoTag& details);
   bool GetMovieInfo(const CStdString& strFilenameAndPath, CVideoInfoTag& details, int idMovie = -1);
   bool GetTvShowInfo(const CStdString& strPath, CVideoInfoTag& details, int idTvShow = -1);
+  bool GetSeasonInfo(int idSeason, CVideoInfoTag& details);
   bool GetEpisodeInfo(const CStdString& strFilenameAndPath, CVideoInfoTag& details, int idEpisode = -1);
   bool GetMusicVideoInfo(const CStdString& strFilenameAndPath, CVideoInfoTag& details, int idMVideo=-1);
   bool GetSetInfo(int idSet, CVideoInfoTag& details);
@@ -444,7 +445,9 @@ public:
   void GetEpisodesByFile(const CStdString& strFilenameAndPath, std::vector<CVideoInfoTag>& episodes);
 
   int SetDetailsForMovie(const CStdString& strFilenameAndPath, const CVideoInfoTag& details, const std::map<std::string, std::string> &artwork, int idMovie = -1);
+  int SetDetailsForMovieSet(const CVideoInfoTag& details, const std::map<std::string, std::string> &artwork, int idSet = -1);
   int SetDetailsForTvShow(const CStdString& strPath, const CVideoInfoTag& details, const std::map<std::string, std::string> &artwork, const std::map<int, std::map<std::string, std::string> > &seasonArt, int idTvShow = -1);
+  int SetDetailsForSeason(const CVideoInfoTag& details, const std::map<std::string, std::string> &artwork, int idShow, int idSeason = -1);
   int SetDetailsForEpisode(const CStdString& strFilenameAndPath, const CVideoInfoTag& details, const std::map<std::string, std::string> &artwork, int idShow, int idEpisode=-1);
   int SetDetailsForMusicVideo(const CStdString& strFilenameAndPath, const CVideoInfoTag& details, const std::map<std::string, std::string> &artwork, int idMVideo = -1);
   void SetStreamDetailsForFile(const CStreamDetails& details, const CStdString &strFileNameAndPath);
@@ -687,6 +690,8 @@ public:
   void SetArtForItem(int mediaId, const std::string &mediaType, const std::map<std::string, std::string> &art);
   bool GetArtForItem(int mediaId, const std::string &mediaType, std::map<std::string, std::string> &art);
   std::string GetArtForItem(int mediaId, const std::string &mediaType, const std::string &artType);
+  bool RemoveArtForItem(int mediaId, const std::string &mediaType, const std::string &artType);
+  bool RemoveArtForItem(int mediaId, const std::string &mediaType, const std::set<std::string> &artTypes);
   bool GetTvShowSeasonArt(int mediaId, std::map<int, std::map<std::string, std::string> > &seasonArt);
   bool GetArtTypes(const std::string &mediaType, std::vector<std::string> &artTypes);
 
@@ -734,9 +739,7 @@ protected:
   void AddToLinkTable(const char *table, const char *firstField, int firstID, const char *secondField, int secondID, const char *typeField = NULL, const char *type = NULL);
   void RemoveFromLinkTable(const char *table, const char *firstField, int firstID, const char *secondField, int secondID, const char *typeField = NULL, const char *type = NULL);
 
-  void AddActorToMovie(int idMovie, int idActor, const CStdString& strRole, int order);
-  void AddActorToTvShow(int idTvShow, int idActor, const CStdString& strRole, int order);
-  void AddActorToEpisode(int idEpisode, int idActor, const CStdString& strRole, int order);
+  void AddCast(int idMedia, const char *table, const char *field, const std::vector<SActorInfo> &cast);
   void AddArtistToMusicVideo(int lMVideo, int idArtist);
 
   void AddDirectorToMovie(int idMovie, int idDirector);
@@ -762,8 +765,8 @@ protected:
   CVideoInfoTag GetDetailsByTypeAndId(VIDEODB_CONTENT_TYPE type, int id);
   CVideoInfoTag GetDetailsForMovie(std::auto_ptr<dbiplus::Dataset> &pDS, bool getDetails = false);
   CVideoInfoTag GetDetailsForMovie(const dbiplus::sql_record* const record, bool getDetails = false);
-  CVideoInfoTag GetDetailsForTvShow(std::auto_ptr<dbiplus::Dataset> &pDS, bool getDetails = false);
-  CVideoInfoTag GetDetailsForTvShow(const dbiplus::sql_record* const record, bool getDetails = false);
+  CVideoInfoTag GetDetailsForTvShow(std::auto_ptr<dbiplus::Dataset> &pDS, bool getDetails = false, CFileItem* item = NULL);
+  CVideoInfoTag GetDetailsForTvShow(const dbiplus::sql_record* const record, bool getDetails = false, CFileItem* item = NULL);
   CVideoInfoTag GetDetailsForEpisode(std::auto_ptr<dbiplus::Dataset> &pDS, bool getDetails = false);
   CVideoInfoTag GetDetailsForEpisode(const dbiplus::sql_record* const record, bool getDetails = false);
   CVideoInfoTag GetDetailsForMusicVideo(std::auto_ptr<dbiplus::Dataset> &pDS, bool getDetails = false);
@@ -834,6 +837,9 @@ private:
    \return safe filename based on this title
    */
   CStdString GetSafeFile(const CStdString &dir, const CStdString &name) const;
+
+  std::vector<int> CleanMediaType(const std::string &mediaType, const std::string &cleanableFileIDs,
+                                  std::map<int, bool> &pathsDeleteDecisions, std::string &deletedFileIDs, bool silent);
 
   void AnnounceRemove(std::string content, int id);
   void AnnounceUpdate(std::string content, int id);

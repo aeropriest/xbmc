@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -48,6 +48,58 @@
 
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
+
+static bool CanSurfaceRenderWhiteList(const std::string &name)
+{
+  // All devices 'should' be capiable of surface rendering
+  // but that seems to be hit or miss as most odd name devices
+  // cannot surface render.
+  static const char *cansurfacerender_decoders[] = {
+    "OMX.Nvidia",
+    "OMX.rk",
+    "OMX.qcom",
+    NULL
+  };
+  for (const char **ptr = cansurfacerender_decoders; *ptr; ptr++)
+  {
+    if (!strnicmp(*ptr, name.c_str(), strlen(*ptr)))
+      return true;
+  }
+  return false;
+}
+
+static bool IsBlacklisted(const std::string &name)
+{
+  static const char *blacklisted_decoders[] = {
+    // No software decoders
+    "OMX.google",
+    NULL
+  };
+  for (const char **ptr = blacklisted_decoders; *ptr; ptr++)
+  {
+    if (!strnicmp(*ptr, name.c_str(), strlen(*ptr)))
+      return true;
+  }
+  return false;
+}
+
+static bool IsSupportedColorFormat(int color_format)
+{
+  static const int supported_colorformats[] = {
+    CJNIMediaCodecInfoCodecCapabilities::COLOR_FormatYUV420Planar,
+    CJNIMediaCodecInfoCodecCapabilities::COLOR_TI_FormatYUV420PackedSemiPlanar,
+    CJNIMediaCodecInfoCodecCapabilities::COLOR_FormatYUV420SemiPlanar,
+    CJNIMediaCodecInfoCodecCapabilities::COLOR_QCOM_FormatYUV420SemiPlanar,
+    CJNIMediaCodecInfoCodecCapabilities::OMX_QCOM_COLOR_FormatYVU420SemiPlanarInterlace,
+    -1
+  };
+  for (const int *ptr = supported_colorformats; *ptr != -1; ptr++)
+  {
+    if (color_format == *ptr)
+      return true;
+  }
+  return false;
+}
 
 /*****************************************************************************/
 /*****************************************************************************/
@@ -158,6 +210,7 @@ void CDVDMediaCodecInfo::ReleaseOutputBuffer(bool render)
     m_frameready->Reset();
 
   m_codec->releaseOutputBuffer(m_index, render);
+
   if (xbmc_jnienv()->ExceptionOccurred())
   {
     CLog::Log(LOGERROR, "CDVDMediaCodecInfo::ReleaseOutputBuffer "
@@ -165,16 +218,13 @@ void CDVDMediaCodecInfo::ReleaseOutputBuffer(bool render)
     xbmc_jnienv()->ExceptionDescribe();
     xbmc_jnienv()->ExceptionClear();
   }
+}
 
-  // this is key, after calling releaseOutputBuffer, we must
-  // wait a little for MediaCodec to render to the surface.
-  // Then we can updateTexImage without delay. If we do not
-  // wait, then video playback gets jerky. To optomize this,
-  // we hook the SurfaceTexture OnFrameAvailable callback
-  // using CJNISurfaceTextureOnFrameAvailableListener and wait
-  // on a CEvent to fire. 20ms seems to be a good max fallback.
-  if (render)
-    m_frameready->WaitMSec(20);
+int CDVDMediaCodecInfo::GetIndex() const
+{
+  CSingleLock lock(m_section);
+
+  return m_index;
 }
 
 int CDVDMediaCodecInfo::GetTextureID() const
@@ -200,6 +250,19 @@ void CDVDMediaCodecInfo::UpdateTexImage()
 
   if (!m_valid)
     return;
+
+  // updateTexImage will check and spew any prior gl errors,
+  // clear them before we call updateTexImage.
+  glGetError();
+
+  // this is key, after calling releaseOutputBuffer, we must
+  // wait a little for MediaCodec to render to the surface.
+  // Then we can updateTexImage without delay. If we do not
+  // wait, then video playback gets jerky. To optomize this,
+  // we hook the SurfaceTexture OnFrameAvailable callback
+  // using CJNISurfaceTextureOnFrameAvailableListener and wait
+  // on a CEvent to fire. 20ms seems to be a good max fallback.
+  m_frameready->WaitMSec(20);
 
   m_surfacetexture->updateTexImage();
   if (xbmc_jnienv()->ExceptionOccurred())
@@ -273,11 +336,15 @@ bool CDVDVideoCodecAndroidMediaCodec::Open(CDVDStreamInfo &hints, CDVDCodecOptio
     case AV_CODEC_ID_H264:
       m_mime = "video/avc";
       m_formatname = "amc-h264";
-      m_bitstream = new CBitstreamConverter;
-      if (!m_bitstream->Open(m_hints.codec, (uint8_t*)m_hints.extradata, m_hints.extrasize, true))
+      // check for h264-avcC and convert to h264-annex-b
+      if (m_hints.extradata && *(uint8_t*)m_hints.extradata == 1)
       {
-        SAFE_DELETE(m_bitstream);
-        return false;
+        m_bitstream = new CBitstreamConverter;
+        if (!m_bitstream->Open(m_hints.codec, (uint8_t*)m_hints.extradata, m_hints.extrasize, true))
+        {
+          SAFE_DELETE(m_bitstream);
+          return false;
+        }
       }
       break;
     case AV_CODEC_ID_VC1:
@@ -292,20 +359,18 @@ bool CDVDVideoCodecAndroidMediaCodec::Open(CDVDStreamInfo &hints, CDVDCodecOptio
       break;
   }
 
-  // odroid platform throws trying to updateTexImage with a 'error creating EGLImage' and
-  // 'unsupported native buffer format (0x13)', sw render them until we figure out why.
-  if (!m_render_sw)
-    m_render_sw = g_cpuInfo.getCPUHardware().find("ODROID") != std::string::npos;
-
-
   // CJNIMediaCodec::createDecoderByXXX doesn't handle errors nicely,
   // it crashes if the codec isn't found. This is fixed in latest AOSP,
   // but not in current 4.1 devices. So 1st search for a matching codec, then create it.
+  bool hasSupportedColorFormat = false;
   int num_codecs = CJNIMediaCodecList::getCodecCount();
   for (int i = 0; i < num_codecs; i++)
   {
     CJNIMediaCodecInfo codec_info = CJNIMediaCodecList::getCodecInfoAt(i);
     if (codec_info.isEncoder())
+      continue;
+    m_codecname = codec_info.getName();
+    if (IsBlacklisted(m_codecname))
       continue;
 
     std::vector<std::string> types = codec_info.getSupportedTypes();
@@ -314,8 +379,10 @@ bool CDVDVideoCodecAndroidMediaCodec::Open(CDVDStreamInfo &hints, CDVDCodecOptio
     {
       if (types[j] == m_mime)
       {
-        m_codecname = codec_info.getName();
         m_codec = boost::shared_ptr<CJNIMediaCodec>(new CJNIMediaCodec(CJNIMediaCodec::createByCodecName(m_codecname)));
+
+        CJNIMediaCodecInfoCodecCapabilities codec_caps = codec_info.getCapabilitiesForType(m_mime);
+        std::vector<int> color_formats = codec_caps.colorFormats();
 
         // clear any jni exceptions, jni gets upset if we do not.
         if (xbmc_jnienv()->ExceptionOccurred())
@@ -324,6 +391,14 @@ bool CDVDVideoCodecAndroidMediaCodec::Open(CDVDStreamInfo &hints, CDVDCodecOptio
           xbmc_jnienv()->ExceptionClear();
           m_codec.reset();
           continue;
+        }
+        hasSupportedColorFormat = false;
+        for (size_t k = 0; k < color_formats.size(); ++k)
+        {
+          CLog::Log(LOGDEBUG, "CDVDVideoCodecAndroidMediaCodec::Open "
+            "m_codecname(%s), colorFormat(%d)", m_codecname.c_str(), color_formats[k]);
+          if (IsSupportedColorFormat(color_formats[k]))
+            hasSupportedColorFormat = true;
         }
         break;
       }
@@ -338,7 +413,25 @@ bool CDVDVideoCodecAndroidMediaCodec::Open(CDVDStreamInfo &hints, CDVDCodecOptio
     return false;
   }
 
-  ConfigureMediaCodec();
+  // whitelist of devices that can surface render.
+  m_render_sw = !CanSurfaceRenderWhiteList(m_codecname);
+  if (m_render_sw)
+  {
+    if (!hasSupportedColorFormat)
+    {
+      CLog::Log(LOGERROR, "CDVDVideoCodecAndroidMediaCodec:: No supported color format");
+      m_codec.reset();
+      SAFE_DELETE(m_bitstream);
+      return false;
+    }
+  }
+
+  if (!ConfigureMediaCodec())
+  {
+    m_codec.reset();
+    SAFE_DELETE(m_bitstream);
+    return false;
+  }
 
   // setup a YUV420P DVDVideoPicture buffer.
   // first make sure all properties are reset.
@@ -603,7 +696,7 @@ void CDVDVideoCodecAndroidMediaCodec::FlushInternal()
   }
 }
 
-void CDVDVideoCodecAndroidMediaCodec::ConfigureMediaCodec(void)
+bool CDVDVideoCodecAndroidMediaCodec::ConfigureMediaCodec(void)
 {
   // setup a MediaFormat to match the video content,
   // used by codec during configure
@@ -652,12 +745,23 @@ void CDVDVideoCodecAndroidMediaCodec::ConfigureMediaCodec(void)
   {
     m_codec->configure(mediaformat, *m_surface, crypto, flags);
   }
-
-  m_codec->start();
-
   // always, check/clear jni exceptions.
   if (xbmc_jnienv()->ExceptionOccurred())
+  {
     xbmc_jnienv()->ExceptionClear();
+    return false;
+  }
+
+
+  m_codec->start();
+  // always, check/clear jni exceptions.
+  if (xbmc_jnienv()->ExceptionOccurred())
+  {
+    xbmc_jnienv()->ExceptionClear();
+    return false;
+  }
+
+  return true;
 }
 
 int CDVDVideoCodecAndroidMediaCodec::GetOutputPicture(void)
@@ -721,10 +825,10 @@ int CDVDVideoCodecAndroidMediaCodec::GetOutputPicture(void)
         src_ptr += offset;
 
         int loop_end = 0;
-        if (m_videobuffer.format == RENDER_FMT_YUV420P)
-          loop_end = 3;
-        else if (m_videobuffer.format == RENDER_FMT_NV12)
+        if (m_videobuffer.format == RENDER_FMT_NV12)
           loop_end = 2;
+        else if (m_videobuffer.format == RENDER_FMT_YUV420P)
+          loop_end = 3;
 
         for (int i = 0; i < loop_end; i++)
         {
@@ -891,7 +995,9 @@ void CDVDVideoCodecAndroidMediaCodec::OutputFormatChanged(void)
     }
     else if (color_format == CJNIMediaCodecInfoCodecCapabilities::COLOR_FormatYUV420SemiPlanar
           || color_format == CJNIMediaCodecInfoCodecCapabilities::COLOR_QCOM_FormatYUV420SemiPlanar
-          || color_format == CJNIMediaCodecInfoCodecCapabilities::COLOR_TI_FormatYUV420PackedSemiPlanar)
+          || color_format == CJNIMediaCodecInfoCodecCapabilities::COLOR_TI_FormatYUV420PackedSemiPlanar
+          || color_format == CJNIMediaCodecInfoCodecCapabilities::OMX_QCOM_COLOR_FormatYVU420SemiPlanarInterlace)
+
     {
       CLog::Log(LOGDEBUG, "CDVDVideoCodecAndroidMediaCodec:: COLOR_FormatYUV420SemiPlanar");
 
