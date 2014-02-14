@@ -49,10 +49,10 @@ bool CPictureDatabaseDirectory::GetDirectory(const CStdString& strPath, CFileIte
     CStdString path = CLegacyPathTranslation::TranslatePictureDbPath(strPath);
     items.SetPath(path);
     auto_ptr<CDirectoryNode> pNode(CDirectoryNode::ParseURL(path));
-    
+
     if (!pNode.get())
         return false;
-    
+
     bResult = pNode->GetChilds(items);
     for (int i=0;i<items.Size();++i)
     {
@@ -74,10 +74,10 @@ NODE_TYPE CPictureDatabaseDirectory::GetDirectoryChildType(const CStdString& str
 
     CStdString path = CLegacyPathTranslation::TranslatePictureDbPath(strPath);
     auto_ptr<CDirectoryNode> pNode(CDirectoryNode::ParseURL(path));
-    
+
     if (!pNode.get())
         return NODE_TYPE_NONE;
-    
+
     return pNode->GetChildType();
 
     return NODE_TYPE_NONE;
@@ -88,10 +88,10 @@ NODE_TYPE CPictureDatabaseDirectory::GetDirectoryType(const CStdString& strPath)
 
     CStdString path = CLegacyPathTranslation::TranslatePictureDbPath(strPath);
     auto_ptr<CDirectoryNode> pNode(CDirectoryNode::ParseURL(path));
-    
+
     if (!pNode.get())
         return NODE_TYPE_NONE;
-    
+
     return pNode->GetType();
 
     return NODE_TYPE_NONE;
@@ -102,15 +102,15 @@ NODE_TYPE CPictureDatabaseDirectory::GetDirectoryParentType(const CStdString& st
 
     CStdString path = CLegacyPathTranslation::TranslatePictureDbPath(strPath);
     auto_ptr<CDirectoryNode> pNode(CDirectoryNode::ParseURL(path));
-    
+
     if (!pNode.get())
         return NODE_TYPE_NONE;
-    
+
     CDirectoryNode* pParentNode=pNode->GetParent();
-    
+
     if (!pParentNode)
         return NODE_TYPE_NONE;
-    
+
     return pParentNode->GetChildType();
 
     return NODE_TYPE_NONE;
@@ -134,10 +134,10 @@ void CPictureDatabaseDirectory::ClearDirectoryCache(const CStdString& strDirecto
 
     CStdString path = CLegacyPathTranslation::TranslatePictureDbPath(strDirectory);
     URIUtils::RemoveSlashAtEnd(path);
-    
+
     Crc32 crc;
     crc.ComputeFromLowerCase(path);
-    
+
     CStdString strFileName;
     strFileName.Format("special://temp/%08x.fi", (unsigned __int32) crc);
     CFile::Delete(strFileName);
@@ -159,19 +159,19 @@ bool CPictureDatabaseDirectory::GetLabel(const CStdString& strDirectory, CStdStr
     auto_ptr<CDirectoryNode> pNode(CDirectoryNode::ParseURL(path));
     if (!pNode.get())
         return false;
-    
+
     // first see if there's any filter criteria
     CQueryParams params;
     CDirectoryNode::GetDatabaseInfo(path, params);
-    
+
     CPictureDatabase picturedatabase;
     if (!picturedatabase.Open())
         return false;
-    
+
     // get genre
     if (params.GetLocationId() >= 0)
         strLabel += picturedatabase.GetLocationById(params.GetLocationId());
-    
+
     // get artist
     if (params.GetFaceId() >= 0)
     {
@@ -179,7 +179,7 @@ bool CPictureDatabaseDirectory::GetLabel(const CStdString& strDirectory, CStdStr
             strLabel += " / ";
         strLabel += picturedatabase.GetFaceById(params.GetFaceId());
     }
-    
+
     // get album
     if (params.GetPictureAlbumId() >= 0)
     {
@@ -187,7 +187,7 @@ bool CPictureDatabaseDirectory::GetLabel(const CStdString& strDirectory, CStdStr
             strLabel += " / ";
         strLabel += picturedatabase.GetPictureAlbumById(params.GetPictureAlbumId());
     }
-    
+
     if (strLabel.IsEmpty())
     {
         switch (pNode->GetChildType())
@@ -263,13 +263,13 @@ bool CPictureDatabaseDirectory::ContainsPictures(const CStdString &path)
 bool CPictureDatabaseDirectory::Exists(const char* strPath)
 {
 
-    
+
     CStdString path = CLegacyPathTranslation::TranslatePictureDbPath(strPath);
     auto_ptr<CDirectoryNode> pNode(CDirectoryNode::ParseURL(path));
-    
+
     if (!pNode.get())
         return false;
-    
+
     if (pNode->GetChildType() == PICTUREDATABASEDIRECTORY::NODE_TYPE_NONE)
         return false;
 
@@ -325,6 +325,6 @@ CStdString CPictureDatabaseDirectory::GetIcon(const CStdString &strDirectory)
             CLog::Log(LOGWARNING, "%s - Unknown nodetype requested %s", __FUNCTION__, strDirectory.c_str());
             break;
     }
-    
+
     return "";
 }
