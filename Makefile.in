@@ -44,6 +44,7 @@ DIRECTORY_ARCHIVES=$(DVDPLAYER_ARCHIVES) \
                    xbmc/cores/cores.a \
                    xbmc/cores/paplayer/paplayer.a \
                    xbmc/cores/playercorefactory/playercorefactory.a \
+                   xbmc/utils/utils.a \
                    xbmc/dbwrappers/dbwrappers.a \
                    xbmc/dialogs/dialogs.a \
                    xbmc/epg/epg.a \
@@ -95,7 +96,6 @@ DIRECTORY_ARCHIVES=$(DVDPLAYER_ARCHIVES) \
                    xbmc/settings/dialogs/settings_dialogs.a \
                    xbmc/settings/windows/settings_windows.a \
                    xbmc/storage/storage.a \
-                   xbmc/utils/utils.a \
                    xbmc/video/dialogs/videodialogs.a \
                    xbmc/video/video.a \
                    xbmc/video/windows/videowindows.a \
