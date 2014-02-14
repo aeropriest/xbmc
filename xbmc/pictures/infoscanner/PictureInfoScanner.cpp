@@ -54,6 +54,7 @@
 #include "addons/AddonManager.h"
 #include "addons/Scraper.h"
 
+#include <iostream>
 #include <algorithm>
 
 using namespace std;
@@ -76,52 +77,104 @@ CPictureInfoScanner::CPictureInfoScanner() : CThread("PictureInfoScanner"), m_fi
 
 CPictureInfoScanner::~CPictureInfoScanner()
 {
+
+}
+
+// harsh
+void CPictureInfoScanner::getTagGeoCoordinates (const CStdString strPath, CStdString &geoLatitude, CStdString &geoLongitude, CStdString &geoAltitude)
+{
+    CFileItemList items;
+    CFileItemPtr item(new CFileItem(strPath,false));
+    items.Add(item);
+    CFileItemPtr pItem = items[0];
+    CPictureInfoTag& tag = *pItem->GetPictureInfoTag();
+    if (!tag.Loaded())
+    {
+        auto_ptr<IPictureInfoTagLoader> pLoader (CPictureInfoTagLoaderFactory::CreateLoader(pItem->GetPath()));
+        if (NULL != pLoader.get())
+        pLoader->Load(pItem->GetPath(), tag);
+    }
+
+//    CStdString a = tag.GetInfo(SLIDE_EXIF_GPS_LATITUDE);
+//    CStdString b = tag.GetInfo(SLIDE_EXIF_GPS_LONGITUDE);
+//    CStdString c = tag.GetInfo(SLIDE_EXIF_GPS_ALTITUDE);
+
+    geoLatitude = tag.GetInfo(SLIDE_EXIF_GPS_LATITUDE);
+    geoLongitude = tag.GetInfo(SLIDE_EXIF_GPS_LONGITUDE);
+    geoAltitude = tag.GetInfo(SLIDE_EXIF_GPS_ALTITUDE);
+
+    CLog::Log(LOGINFO, "SLIDE_EXIF_GPS_LATITUDE %s SLIDE_EXIF_GPS_LONGITUDE %s SLIDE_EXIF_GPS_ALTITUDE %s",geoLatitude.c_str(),geoLongitude.c_str(),geoAltitude.c_str());
+}
+
+CStdString CPictureInfoScanner::getTagPictureDate (const CStdString strPath)
+{
+    CFileItemList items;
+    CFileItemPtr item(new CFileItem(strPath,false));
+    items.Add(item);
+    CFileItemPtr pItem = items[0];
+    CPictureInfoTag& tag = *pItem->GetPictureInfoTag();
+    CPicture picture(*pItem);
+
+     if (!tag.Loaded())
+     {
+         auto_ptr<IPictureInfoTagLoader> pLoader (CPictureInfoTagLoaderFactory::CreateLoader(pItem->GetPath()));
+        if (NULL != pLoader.get())
+        pLoader->Load(pItem->GetPath(), tag);
+     }
+
+//    printf ("\nSLIDE_EXIF_DATE_TIME - %s", tag.GetInfo(SLIDE_EXIF_DATE_TIME).c_str());
+//    printf ("\nSLIDE_EXIF_LONG_DATE_TIME - %s", tag.GetInfo(SLIDE_EXIF_LONG_DATE_TIME).c_str());
+//    printf ("\nSLIDE_EXIF_LONG_DATE - %s", tag.GetInfo(SLIDE_EXIF_LONG_DATE).c_str());
+//    printf ("\nSLIDE_EXIF_DATE - %s", tag.GetInfo(SLIDE_EXIF_DATE).c_str());
+//    printf ("\nSLIDE_EXIF_DESCRIPTION - %s", tag.GetInfo(SLIDE_EXIF_DESCRIPTION).c_str());
+
+    return tag.GetInfo(SLIDE_EXIF_DATE_TIME).c_str();
 }
 
 void CPictureInfoScanner::Process()
 {
   //ASHOK: FIX THIS, DONT NEED IT RIGHT NOW BUT IF PHOTOS TO BE SCANNED FROM THE DRIVE
   //THEN IT WILL BE NEEDED
-  
+
   return;
     ANNOUNCEMENT::CAnnouncementManager::Announce(ANNOUNCEMENT::AudioLibrary, "xbmc", "OnScanStarted");
     try
     {
         unsigned int tick = XbmcThreads::SystemClockMillis();
-        
+
         m_pictureDatabase.Open();
-        
+
         if (m_showDialog && !CSettings::Get().GetBool("picturelibrary.backgroundupdate"))
         {
             CGUIDialogExtendedProgressBar* dialog =
             (CGUIDialogExtendedProgressBar*)g_windowManager.GetWindow(WINDOW_DIALOG_EXT_PROGRESS);
             m_handle = dialog->GetHandle(g_localizeStrings.Get(314));
         }
-        
+
         m_bCanInterrupt = true;
-        
+
         if (m_scanType == 0) // load info from files
         {
             CLog::Log(LOGDEBUG, "%s - Starting scan", __FUNCTION__);
-            
+
             if (m_handle)
                 m_handle->SetTitle(g_localizeStrings.Get(505));
-            
+
             // Reset progress vars
             m_currentItem=0;
             m_itemCount=-1;
-            
+
             // Create the thread to count all files to be scanned
             SetPriority( GetMinPriority() );
             if (m_handle)
                 m_fileCountReader.Create();
-            
+
             // Database operations should not be canceled
             // using Interupt() while scanning as it could
             // result in unexpected behaviour.
             m_bCanInterrupt = false;
             m_needsCleanup = false;
-            
+
             bool commit = false;
             bool cancelled = false;
             for (std::set<std::string>::const_iterator it = m_pathsToScan.begin(); it != m_pathsToScan.end(); it++)
@@ -136,11 +189,11 @@ void CPictureInfoScanner::Process()
                     cancelled = true;
                 commit = !cancelled;
             }
-            
+
             if (commit)
             {
                 g_infoManager.ResetLibraryBools();
-                
+
                 if (m_needsCleanup)
                 {
                     if (m_handle)
@@ -148,20 +201,20 @@ void CPictureInfoScanner::Process()
                         m_handle->SetTitle(g_localizeStrings.Get(700));
                         m_handle->SetText("");
                     }
-                    
+
                     m_pictureDatabase.CleanupOrphanedItems();
-                    
+
                     if (m_handle)
                         m_handle->SetTitle(g_localizeStrings.Get(331));
-                    
+
                     m_pictureDatabase.Compress(false);
                 }
             }
-            
+
             m_fileCountReader.StopThread();
-            
+
             m_pictureDatabase.EmptyCache();
-            
+
             tick = XbmcThreads::SystemClockMillis() - tick;
             CLog::Log(LOGNOTICE, "My Picture: Scanning for picture info using worker thread, operation took %s", StringUtils::SecondsToTimeString(tick / 1000).c_str());
         }
@@ -182,7 +235,7 @@ void CPictureInfoScanner::Process()
                     m_handle->SetText(StringUtils::Join(album.face, g_advancedSettings.m_pictureItemSeparator) + " - " + album.strAlbum);
                     m_handle->SetPercentage(percentage);
                 }
-                
+
                 CPictureAlbumInfo albumInfo;
                 UpdateDatabaseAlbumInfo(*it, albumInfo, false);
                 */
@@ -198,26 +251,26 @@ void CPictureInfoScanner::Process()
                 CDirectoryNode::GetDatabaseInfo(*it, params);
                 if (m_pictureDatabase.HasFaceInfo(params.GetFaceId())) // should this be here?
                     continue;
-                
+
                 CFace face;
                 m_pictureDatabase.GetFaceInfo(params.GetFaceId(), face);
                 m_pictureDatabase.GetFacePath(params.GetFaceId(), face.strPath);
-                
+
                 if (m_handle)
                 {
                     float percentage = (float) (std::distance(m_pathsToScan.begin(), it) / m_pathsToScan.size()) * 100;
                     m_handle->SetText(face.strFace);
                     m_handle->SetPercentage(percentage);
                 }
-                
+
                 CPictureFaceInfo faceInfo;
                 UpdateDatabaseFaceInfo(*it, faceInfo, false);
-                
+
                 if (m_bStop)
                     break;
             }
         }
-        
+
     }
     catch (...)
     {
@@ -225,15 +278,15 @@ void CPictureInfoScanner::Process()
     }
     m_pictureDatabase.Close();
     CLog::Log(LOGDEBUG, "%s - Finished scan", __FUNCTION__);
-    
+
     m_bRunning = false;
     ANNOUNCEMENT::CAnnouncementManager::Announce(ANNOUNCEMENT::AudioLibrary, "xbmc", "OnScanFinished");
-    
+
     // we need to clear the picturedb cache and update any active lists
 //    CUtil::DeletePictureDatabaseDirectoryCache();
     CGUIMessage msg(GUI_MSG_SCAN_FINISHED, 0, 0, 0);
     g_windowManager.SendThreadMessage(msg);
-    
+
     if (m_handle)
         m_handle->MarkFinished();
     m_handle = NULL;
@@ -245,7 +298,7 @@ void CPictureInfoScanner::Start(const CStdString& strDirectory, int flags)
     StopThread();
     m_pathsToScan.clear();
     m_flags = flags;
-    
+
     if (strDirectory.IsEmpty())
     { // scan all paths in the database.  We do this by scanning all paths in the db, and crossing them off the list as
         // we go.
@@ -255,7 +308,7 @@ void CPictureInfoScanner::Start(const CStdString& strDirectory, int flags)
     }
     else
         m_pathsToScan.insert(strDirectory);
-    
+
     m_scanType = 0;
     Create();
     m_bRunning = true;
@@ -267,7 +320,7 @@ void CPictureInfoScanner::FetchAlbumInfo(const CStdString& strDirectory,
     m_fileCountReader.StopThread();
     StopThread();
     m_pathsToScan.clear();
-    
+
     CFileItemList items;
     if (strDirectory.IsEmpty())
     {
@@ -285,13 +338,13 @@ void CPictureInfoScanner::FetchAlbumInfo(const CStdString& strDirectory,
             items.Add(item);
         }
     }
-    
+
     m_pictureDatabase.Open();
     for (int i=0;i<items.Size();++i)
     {
         if (CPictureDatabaseDirectory::IsAllItem(items[i]->GetPath()) || items[i]->IsParentFolder())
             continue;
-        
+
         m_pathsToScan.insert(items[i]->GetPath());
         if (refresh)
         {
@@ -299,7 +352,7 @@ void CPictureInfoScanner::FetchAlbumInfo(const CStdString& strDirectory,
         }
     }
     m_pictureDatabase.Close();
-    
+
     m_scanType = 1;
     Create();
     m_bRunning = true;
@@ -312,7 +365,7 @@ void CPictureInfoScanner::FetchFaceInfo(const CStdString& strDirectory,
     StopThread();
     m_pathsToScan.clear();
     CFileItemList items;
-    
+
     if (strDirectory.IsEmpty())
     {
         m_pictureDatabase.Open();
@@ -329,13 +382,13 @@ void CPictureInfoScanner::FetchFaceInfo(const CStdString& strDirectory,
             items.Add(newItem);
         }
     }
-    
+
     m_pictureDatabase.Open();
     for (int i=0;i<items.Size();++i)
     {
         if (CPictureDatabaseDirectory::IsAllItem(items[i]->GetPath()) || items[i]->IsParentFolder())
             continue;
-        
+
         m_pathsToScan.insert(items[i]->GetPath());
         if (refresh)
         {
@@ -343,7 +396,7 @@ void CPictureInfoScanner::FetchFaceInfo(const CStdString& strDirectory,
         }
     }
     m_pictureDatabase.Close();
-    
+
     m_scanType = 2;
     Create();
     m_bRunning = true;
@@ -358,7 +411,7 @@ void CPictureInfoScanner::Stop()
 {
     if (m_bCanInterrupt)
         m_pictureDatabase.Interupt();
-    
+
     StopThread(false);
 }
 
@@ -374,7 +427,7 @@ static CStdString Prettify(const CStdString& strDirectory)
     CURL url(strDirectory);
     CStdString strStrippedPath = url.GetWithoutUserDetails();
     CURL::Decode(strStrippedPath);
-    
+
     return strStrippedPath;
 }
 
@@ -382,23 +435,23 @@ bool CPictureInfoScanner::DoScan(const CStdString& strDirectory)
 {
   if (m_handle)
     m_handle->SetText(Prettify(strDirectory));
-  
+
   // Discard all excluded files defined by m_pictureExcludeRegExps
   CStdStringArray regexps = g_advancedSettings.m_audioExcludeFromScanRegExps;
   if (CUtil::ExcludeFileOrFolder(strDirectory, regexps))
     return true;
-  
+
   // load subfolder
   CFileItemList items;
   CDirectory::GetDirectory(strDirectory, items, g_advancedSettings.m_pictureExtensions + "|.jpg|.tbn|.lrc|.cdg");
-  
+
   // sort and get the path hash.  Note that we don't filter .cue sheet items here as we want
   // to detect changes in the .cue sheet as well.  The .cue sheet items only need filtering
   // if we have a changed hash.
   items.Sort(SortByLabel, SortOrderAscending);
   CStdString hash;
   GetPathHash(items, hash);
-  
+
   // check whether we need to rescan or not
   CStdString dbHash;
   if ((m_flags & SCAN_RESCAN) || !m_pictureDatabase.GetPathHash(strDirectory, dbHash) || dbHash != hash)
@@ -407,7 +460,7 @@ bool CPictureInfoScanner::DoScan(const CStdString& strDirectory)
       CLog::Log(LOGDEBUG, "%s Scanning dir '%s' as not in the database", __FUNCTION__, strDirectory.c_str());
     else
       CLog::Log(LOGDEBUG, "%s Rescanning dir '%s' due to change", __FUNCTION__, strDirectory.c_str());
-    
+
     // filter items in the sub dir (for .cue sheet support)
     items.FilterCueItems();
     items.Sort(SortByLabel, SortOrderAscending);
@@ -417,7 +470,7 @@ bool CPictureInfoScanner::DoScan(const CStdString& strDirectory)
       if (m_handle)
         OnDirectoryScanned(strDirectory);
     }
-    
+
     // save information about this folder
     m_pictureDatabase.SetPathHash(strDirectory, hash);
   }
@@ -425,7 +478,7 @@ bool CPictureInfoScanner::DoScan(const CStdString& strDirectory)
   { // path is the same - no need to rescan
     CLog::Log(LOGDEBUG, "%s Skipping dir '%s' due to no change", __FUNCTION__, strDirectory.c_str());
     m_currentItem += CountFiles(items, false);  // false for non-recursive
-    
+
     // updated the dialog with our progress
     if (m_handle)
     {
@@ -434,12 +487,12 @@ bool CPictureInfoScanner::DoScan(const CStdString& strDirectory)
       OnDirectoryScanned(strDirectory);
     }
   }
-  
+
   // now scan the subfolders
   for (int i = 0; i < items.Size(); ++i)
   {
     CFileItemPtr pItem = items[i];
-    
+
     if (m_bStop)
       break;
     // if we have a directory item (non-playlist) we then recurse into that folder
@@ -452,29 +505,29 @@ bool CPictureInfoScanner::DoScan(const CStdString& strDirectory)
       }
     }
   }
-  
+
   return !m_bStop;
 }
 
 INFO_RET CPictureInfoScanner::ScanTags(const CFileItemList& items, CFileItemList& scannedItems)
 {
   CStdStringArray regexps = g_advancedSettings.m_pictureExcludeFromListingRegExps;
-  
+
     for (int i = 0; i < items.Size(); ++i)
     {
         if (m_bStop)
             return INFO_CANCELLED;
-        
+
         CFileItemPtr pItem = items[i];
-        
+
         if (CUtil::ExcludeFileOrFolder(pItem->GetPath(), regexps))
             continue;
-        
+
         if (pItem->m_bIsFolder )
             continue;
-        
+
         m_currentItem++;
-        
+
         CPictureInfoTag& tag = *pItem->GetPictureInfoTag();
         if (!tag.Loaded())
         {
@@ -482,6 +535,7 @@ INFO_RET CPictureInfoScanner::ScanTags(const CFileItemList& items, CFileItemList
             if (NULL != pLoader.get())
                 pLoader->Load(pItem->GetPath(), tag);
         }
+
       CStdString a = tag.GetInfo(SLIDE_EXIF_GPS_LATITUDE);
       CStdString b = tag.GetInfo(SLIDE_EXIF_GPS_LONGITUDE);
       CStdString c = tag.GetInfo(SLIDE_EXIF_GPS_ALTITUDE);
@@ -489,13 +543,13 @@ INFO_RET CPictureInfoScanner::ScanTags(const CFileItemList& items, CFileItemList
 
         if (m_handle && m_itemCount>0)
             m_handle->SetPercentage(m_currentItem/(float)m_itemCount*100);
-        
+
         if (!tag.Loaded())
         {
             CLog::Log(LOGDEBUG, "%s - No tag found for: %s", __FUNCTION__, pItem->GetPath().c_str());
             continue;
         }
-      
+
         scannedItems.Add(pItem);
     }
     return INFO_ADDED;
@@ -508,7 +562,7 @@ void CPictureInfoScanner::FileItemsToAlbums(CFileItemList& items, VECPICTUREALBU
         CFileItemPtr pItem = items[i];
         CPictureInfoTag& tag = *pItem->GetPictureInfoTag();
         CPicture picture(*pItem);
-        
+
         // keep the db-only fields intact on rescan...
         if (picturesMap != NULL)
         {
@@ -519,7 +573,7 @@ void CPictureInfoScanner::FileItemsToAlbums(CFileItemList& items, VECPICTUREALBU
                 if (picture.strThumb.empty()) picture.strThumb = it->second.strThumb;
             }
         }
-        
+
         {
             for (vector<string>::const_iterator it = tag.GetFace().begin(); it != tag.GetFace().end(); ++it)
             {
@@ -529,7 +583,7 @@ void CPictureInfoScanner::FileItemsToAlbums(CFileItemList& items, VECPICTUREALBU
             }
             picture.face = tag.GetFace();
         }
-        
+
         bool found = false;
         for (VECPICTUREALBUMS::iterator it = albums.begin(); it != albums.end(); ++it)
         {
@@ -560,31 +614,31 @@ void CPictureInfoScanner::FileItemsToAlbums(CFileItemList& items, VECPICTUREALBU
 int CPictureInfoScanner::RetrievePictureInfo(const CStdString& strDirectory, CFileItemList& items)
 {
     MAPPICTURES picturesMap;
-    
+
     // get all information for all files in current directory from database, and remove them
     if (m_pictureDatabase.RemovePicturesFromPath(strDirectory, picturesMap))
         m_needsCleanup = true;
-    
+
     CFileItemList scannedItems;
     if (ScanTags(items, scannedItems) == INFO_CANCELLED)
         return 0;
-    
+
     VECPICTUREALBUMS albums;
     FileItemsToAlbums(scannedItems, albums, &picturesMap);
     if (!(m_flags & SCAN_ONLINE))
         FixupAlbums(albums);
     FindArtForAlbums(albums, items.GetPath());
-    
+
     int numAdded = 0;
     // Add each album
     for (VECPICTUREALBUMS::iterator album = albums.begin(); album != albums.end(); ++album)
     {
         if (m_bStop)
             break;
-        
+
         album->strPath = strDirectory;
         m_pictureDatabase.BeginTransaction();
-        
+
         // Check if the album has already been downloaded or failed
         map<CPictureAlbum, CPictureAlbum>::iterator cachedAlbum = m_albumCache.find(*album);
         if (cachedAlbum == m_albumCache.end())
@@ -601,10 +655,10 @@ int CPictureInfoScanner::RetrievePictureInfo(const CStdString& strDirectory, CFi
                                                   "album", album->art);
                 m_albumCache.insert(make_pair(*album, *album));
             }
-            
+
             // Update the cache pointer with our newly created info
             cachedAlbum = m_albumCache.find(*album);
-             
+
         if (m_bStop)
             break;
         /*
@@ -613,7 +667,7 @@ int CPictureInfoScanner::RetrievePictureInfo(const CStdString& strDirectory, CFi
         {
             if (m_bStop)
                 break;
-            
+
             // Check if the face has already been downloaded or failed
             map<CFaceCredit, CFace>::iterator cachedFace = m_faceCache.find(*faceCredit);
             if (cachedFace == m_faceCache.end())
@@ -622,13 +676,13 @@ int CPictureInfoScanner::RetrievePictureInfo(const CStdString& strDirectory, CFi
                 faceTmp.strFace = faceCredit->GetFace();
                 faceTmp.strPictureBrainzFaceID = faceCredit->GetPictureBrainzFaceID();
                 URIUtils::GetParentPath(album->strPath, faceTmp.strPath);
-                
+
                 // No - download the information
                 CPictureFaceInfo faceInfo;
                 INFO_RET faceDownloadStatus = INFO_NOT_FOUND;
                 if ((m_flags & SCAN_ONLINE) && faceScraper)
                     faceDownloadStatus = DownloadFaceInfo(faceTmp, faceScraper, faceInfo);
-                
+
                 if (faceDownloadStatus == INFO_ADDED || faceDownloadStatus == INFO_HAVE_ALREADY)
                 {
                     CFace &downloadedFace = faceInfo.GetFace();
@@ -636,7 +690,7 @@ int CPictureInfoScanner::RetrievePictureInfo(const CStdString& strDirectory, CFi
                                                                           downloadedFace.strPictureBrainzFaceID);
                     m_pictureDatabase.SetFaceInfo(downloadedFace.idFace,
                                                   downloadedFace);
-                    
+
                     URIUtils::GetParentPath(album->strPath, downloadedFace.strPath);
                     map<string, string> artwork = GetFaceArtwork(downloadedFace);
                     // check thumb stuff
@@ -651,11 +705,11 @@ int CPictureInfoScanner::RetrievePictureInfo(const CStdString& strDirectory, CFi
                     faceTmp.idFace = m_pictureDatabase.AddFace(faceCredit->GetFace(), faceCredit->GetPictureBrainzFaceID());
                     m_faceCache.insert(make_pair(*faceCredit, faceTmp));
                 }
-                
+
                 // Update the cache pointer with our newly created info
                 cachedFace = m_faceCache.find(*faceCredit);
             }
-            
+
             m_pictureDatabase.AddAlbumFace(cachedFace->second.idFace,
                                            cachedAlbum->second.idAlbum,
                                            faceCredit->GetJoinPhrase(),
@@ -665,13 +719,13 @@ int CPictureInfoScanner::RetrievePictureInfo(const CStdString& strDirectory, CFi
         */
         if (m_bStop)
             break;
-        
+
         for (VECPICTURES::iterator picture = album->pictures.begin(); picture != album->pictures.end(); ++picture)
         {
             picture->idAlbum = cachedAlbum->second.idAlbum;
             picture->idPicture = m_pictureDatabase.AddPicture(cachedAlbum->second.idAlbum,
                                                    picture->strTitle,
-                                                              "Horizontal",                                                              
+                                                              "Horizontal",
                                                    picture->strFileName, picture->strComment,
                                                    picture->strThumb,
                                                    picture->face,
@@ -690,13 +744,13 @@ int CPictureInfoScanner::RetrievePictureInfo(const CStdString& strDirectory, CFi
                     faceTmp.strFace = faceCredit->GetFace();
                     faceTmp.strPictureBrainzFaceID = faceCredit->GetPictureBrainzFaceID();
                     URIUtils::GetParentPath(album->strPath, faceTmp.strPath); // FIXME
-                    
+
                     // No - download the information
                     CPictureFaceInfo faceInfo;
                     INFO_RET faceDownloadStatus = INFO_NOT_FOUND;
                     if ((m_flags & SCAN_ONLINE) && faceScraper)
                         faceDownloadStatus = DownloadFaceInfo(faceTmp, faceScraper, faceInfo);
-                    
+
                     if (faceDownloadStatus == INFO_ADDED || faceDownloadStatus == INFO_HAVE_ALREADY)
                     {
                         CFace &downloadedFace = faceInfo.GetFace();
@@ -718,11 +772,11 @@ int CPictureInfoScanner::RetrievePictureInfo(const CStdString& strDirectory, CFi
                         faceTmp.idFace = m_pictureDatabase.AddFace(faceCredit->GetFace(), faceCredit->GetPictureBrainzFaceID());
                         m_faceCache.insert(make_pair(*faceCredit, faceTmp));
                     }
-                    
+
                     // Update the cache pointer with our newly created info
                     cachedFace = m_faceCache.find(*faceCredit);
                 }
-                
+
                 m_pictureDatabase.AddPictureFace(cachedFace->second.idFace,
                                               picture->idPicture,
                                               g_advancedSettings.m_pictureItemSeparator, // we don't have picture face breakdowns from scrapers, yet
@@ -731,21 +785,21 @@ int CPictureInfoScanner::RetrievePictureInfo(const CStdString& strDirectory, CFi
                  */
             }
         }
-        
+
         if (m_bStop)
             break;
-        
+
         // Commit the album to the DB
         m_pictureDatabase.CommitTransaction();
         numAdded += album->pictures.size();
     }
-    
+
     if (m_bStop)
         m_pictureDatabase.RollbackTransaction();
-    
+
     if (m_handle)
         m_handle->SetTitle(g_localizeStrings.Get(505));
-    
+
     return numAdded;
 }
 
@@ -765,15 +819,15 @@ void CPictureInfoScanner::FixupAlbums(VECPICTUREALBUMS &albums)
          */
 //        if (!album->strPictureBrainzAlbumID.IsEmpty())
 //            continue;
-        
+
         VECPICTURES &pictures = album->pictures;
         // sort the pictures by tracknumber to identify duplicate track numbers
-      
+
         // map the pictures to their primary faces
         bool tracksOverlap = false;
         bool hasAlbumFace = false;
         bool isCompilation = true;
-        
+
         map<string, vector<CPicture *> > faces;
         for (VECPICTURES::iterator picture = pictures.begin(); picture != pictures.end(); ++picture)
         {
@@ -786,11 +840,11 @@ void CPictureInfoScanner::FixupAlbums(VECPICTUREALBUMS &albums)
             }
             else if (!picture->face.empty())
                 primary = picture->face[0];
-            
+
             // add to the face map
             faces[primary].push_back(&(*picture));
         }
-        
+
         /*
          We have a compilation if
          1. album name is non-empty AND
@@ -809,7 +863,7 @@ void CPictureInfoScanner::FixupAlbums(VECPICTUREALBUMS &albums)
         }
         else if (hasAlbumFace) // 3b
             compilation = false;
-        
+
         if (compilation)
         {
             CLog::Log(LOGDEBUG, "Album '%s' is a compilation as there's no overlapping tracks and %s", album->strAlbum.c_str(), hasAlbumFace ? "the album face is 'Various'" : "there is more than one unique face");
@@ -822,7 +876,7 @@ void CPictureInfoScanner::FixupAlbums(VECPICTUREALBUMS &albums)
                 faces[various].push_back(&(*picture));
             }
         }
-        
+
         /*
          Step 3: Find the common albumface for each picture and assign
          albumface to those tracks that don't have it set.
@@ -843,7 +897,7 @@ void CPictureInfoScanner::FixupAlbums(VECPICTUREALBUMS &albums)
                 }
                 common.erase(common.begin() + match, common.end());
             }
-            
+
             /*
              Step 4: Assign the album face for each picture that doesn't have it set
              and add to the album vector
@@ -886,10 +940,10 @@ void CPictureInfoScanner::FindArtForAlbums(VECPICTUREALBUMS &albums, const CStdS
     for (VECPICTUREALBUMS::iterator i = albums.begin(); i != albums.end(); ++i)
     {
         CPictureAlbum &album = *i;
-        
+
         if (albums.size() != 1)
             albumArt = "";
-        
+
         /*
          Find art that is common across these items
          If we find a single art image we treat it as the album art
@@ -912,11 +966,11 @@ void CPictureInfoScanner::FindArtForAlbums(VECPICTUREALBUMS &albums, const CStdS
                     art = &picture;
             }
         }
-        
+
         /*
          assign the first art found to the album - better than no art at all
          */
-        
+
         if (art && albumArt.empty())
         {
             if (!art->strThumb.empty())
@@ -924,10 +978,10 @@ void CPictureInfoScanner::FindArtForAlbums(VECPICTUREALBUMS &albums, const CStdS
             else
                 albumArt = CTextureCache::GetWrappedImageURL(art->strFileName, "picture");
         }
-        
+
         if (!albumArt.empty())
             album.art["thumb"] = albumArt;
-        
+
         if (singleArt)
         { //if singleArt then we can clear the artwork for all pictures
             for (VECPICTURES::iterator k = album.pictures.begin(); k != album.pictures.end(); ++k)
@@ -976,22 +1030,22 @@ INFO_RET CPictureInfoScanner::UpdateDatabaseAlbumInfo(const CStdString& strPath,
     m_pictureDatabase.Open();
     CQueryParams params;
     CDirectoryNode::GetDatabaseInfo(strPath, params);
-    
+
 //    if (params.GetAlbumId() == -1)
 //        return INFO_ERROR;
-    
+
     CPictureAlbum album;
 //    m_pictureDatabase.GetPictureAlbumInfo(params.GetAlbumId(), album, &album.pictures);
-    
+
     // find album info
     ADDON::ScraperPtr scraper;
     bool result = m_pictureDatabase.GetScraperForPath(strPath, scraper, ADDON::ADDON_SCRAPER_ALBUMS);
-    
+
     m_pictureDatabase.Close();
-    
+
     if (!result || !scraper)
         return INFO_ERROR;
-    
+
 loop:
     CLog::Log(LOGDEBUG, "%s downloading info for: %s", __FUNCTION__, album.strAlbum.c_str());
     INFO_RET albumDownloadStatus = DownloadAlbumInfo(album, scraper, albumInfo, pDialog);
@@ -1001,11 +1055,11 @@ loop:
         {
             if (!CGUIKeyboardFactory::ShowAndGetInput(album.strAlbum, g_localizeStrings.Get(16011), false))
                 return INFO_CANCELLED;
-            
+
             CStdString strTempFace(StringUtils::Join(album.face, g_advancedSettings.m_pictureItemSeparator));
             if (!CGUIKeyboardFactory::ShowAndGetInput(strTempFace, g_localizeStrings.Get(16025), false))
                 return INFO_CANCELLED;
-            
+
             album.face = StringUtils::Split(strTempFace, g_advancedSettings.m_pictureItemSeparator);
             goto loop;
         }
@@ -1026,19 +1080,19 @@ INFO_RET CPictureInfoScanner::UpdateDatabaseFaceInfo(const CStdString& strPath, 
     m_pictureDatabase.Open();
     CQueryParams params;
     CDirectoryNode::GetDatabaseInfo(strPath, params);
-    
+
     if (params.GetFaceId() == -1)
         return INFO_ERROR;
-    
+
     CFace face;
     m_pictureDatabase.GetFaceInfo(params.GetFaceId(), face);
-    
+
     // find album info
     ADDON::ScraperPtr scraper;
     if (!m_pictureDatabase.GetScraperForPath(strPath, scraper, ADDON::ADDON_SCRAPER_ARTISTS) || !scraper)
         return INFO_ERROR;
     m_pictureDatabase.Close();
-    
+
 loop:
     CLog::Log(LOGDEBUG, "%s downloading info for: %s", __FUNCTION__, face.strFace.c_str());
     INFO_RET faceDownloadStatus = DownloadFaceInfo(face, scraper, faceInfo, pDialog);
@@ -1073,12 +1127,12 @@ INFO_RET CPictureInfoScanner::DownloadAlbumInfo(const CPictureAlbum& album, ADDO
         m_handle->SetTitle(StringUtils::Format(g_localizeStrings.Get(20321), info->Name().c_str()));
         m_handle->SetText(StringUtils::Join(album.face, g_advancedSettings.m_pictureItemSeparator) + " - " + album.strAlbum);
     }
-    
+
     // clear our scraper cache
     info->ClearCache();
-    
+
     CPictureInfoScraper scraper(info);
-    
+
     bool bPictureBrainz = false;
     /*
     if (!album.strPictureBrainzAlbumID.empty())
@@ -1093,7 +1147,7 @@ INFO_RET CPictureInfoScanner::DownloadAlbumInfo(const CPictureAlbum& album, ADDO
         }
     }
      */
-    
+
     // handle nfo files
     CStdString strNfo = URIUtils::AddFileToFolder(album.strPath, "album.nfo");
     CNfoFile::NFOResult result = CNfoFile::NO_NFO;
@@ -1122,17 +1176,17 @@ INFO_RET CPictureInfoScanner::DownloadAlbumInfo(const CPictureAlbum& album, ADDO
         else
             CLog::Log(LOGERROR,"Unable to find an url in nfo file: %s", strNfo.c_str());
     }
-    
+
     if (!scraper.CheckValidOrFallback(CSettings::Get().GetString("picturelibrary.albumsscraper")))
     { // the current scraper is invalid, as is the default - bail
         CLog::Log(LOGERROR, "%s - current and default scrapers are invalid.  Pick another one", __FUNCTION__);
         return INFO_ERROR;
     }
-    
+
     if (!scraper.GetAlbumCount())
     {
         scraper.FindAlbumInfo(album.strAlbum, StringUtils::Join(album.face, g_advancedSettings.m_pictureItemSeparator));
-        
+
         while (!scraper.Completed())
         {
             if (m_bStop)
@@ -1143,7 +1197,7 @@ INFO_RET CPictureInfoScanner::DownloadAlbumInfo(const CPictureAlbum& album, ADDO
             Sleep(1);
         }
     }
-    
+
     CGUIDialogSelect *pDlg = NULL;
     int iSelectedAlbum=0;
     if (result == CNfoFile::NO_NFO && !bPictureBrainz)
@@ -1163,14 +1217,14 @@ INFO_RET CPictureInfoScanner::DownloadAlbumInfo(const CPictureAlbum& album, ADDO
                     pDlg->Reset();
                     pDlg->EnableButton(true, 413); // manual
                 }
-                
+
                 for (int i = 0; i < scraper.GetAlbumCount(); ++i)
                 {
                     CPictureAlbumInfo& info = scraper.GetAlbum(i);
                     double relevance = info.GetRelevance();
                     if (relevance < 0)
                         relevance = CUtil::AlbumRelevance(info.GetAlbum().strAlbum, album.strAlbum, StringUtils::Join(info.GetAlbum().face, g_advancedSettings.m_pictureItemSeparator), StringUtils::Join(album.face, g_advancedSettings.m_pictureItemSeparator));
-                    
+
                     // if we're doing auto-selection (ie querying all albums at once, then allow 95->100% for perfect matches)
                     // otherwise, perfect matches only
                     if (relevance >= max(minRelevance, bestRelevance))
@@ -1190,34 +1244,34 @@ INFO_RET CPictureInfoScanner::DownloadAlbumInfo(const CPictureAlbum& album, ADDO
                     if (relevance > .99f) // we're so close, no reason to search further
                         break;
                 }
-                
+
                 if (pDialog && bestRelevance < THRESHOLD)
                 {
                     pDlg->Sort(false);
                     pDlg->DoModal();
-                    
+
                     // and wait till user selects one
                     if (pDlg->GetSelectedLabel() < 0)
                     { // none chosen
                         if (!pDlg->IsButtonPressed())
                             return INFO_CANCELLED;
-                        
+
                         // manual button pressed
                         CStdString strNewAlbum = album.strAlbum;
                         if (!CGUIKeyboardFactory::ShowAndGetInput(strNewAlbum, g_localizeStrings.Get(16011), false)) return INFO_CANCELLED;
                         if (strNewAlbum == "") return INFO_CANCELLED;
-                        
+
                         CStdString strNewFace = StringUtils::Join(album.face, g_advancedSettings.m_pictureItemSeparator);
                         if (!CGUIKeyboardFactory::ShowAndGetInput(strNewFace, g_localizeStrings.Get(16025), false)) return INFO_CANCELLED;
-                        
+
                         pDialog->SetLine(0, strNewAlbum);
                         pDialog->SetLine(1, strNewFace);
                         pDialog->Progress();
-                        
+
                         CPictureAlbum newAlbum = album;
                         newAlbum.strAlbum = strNewAlbum;
                         newAlbum.face = StringUtils::Split(strNewFace, g_advancedSettings.m_pictureItemSeparator);
-                        
+
                         return DownloadAlbumInfo(newAlbum, info, albumInfo, pDialog);
                     }
                     iSelectedAlbum = pDlg->GetSelectedItem()->m_idepth;
@@ -1234,16 +1288,16 @@ INFO_RET CPictureInfoScanner::DownloadAlbumInfo(const CPictureAlbum& album, ADDO
                                                       StringUtils::Join(album.face, g_advancedSettings.m_pictureItemSeparator));
                 if (relevance < THRESHOLD)
                     return INFO_NOT_FOUND;
-                
+
                 iSelectedAlbum = 0;
             }
         }
-        
+
         if (iSelectedAlbum < 0)
             return INFO_NOT_FOUND;
-        
+
     }
-    
+
     scraper.LoadAlbumInfo(iSelectedAlbum);
     while (!scraper.Completed())
     {
@@ -1254,15 +1308,15 @@ INFO_RET CPictureInfoScanner::DownloadAlbumInfo(const CPictureAlbum& album, ADDO
         }
         Sleep(1);
     }
-    
+
     if (!scraper.Succeeded())
         return INFO_ERROR;
-    
+
     albumInfo = scraper.GetAlbum(iSelectedAlbum);
-    
+
     if (result == CNfoFile::COMBINED_NFO)
         nfoReader.GetDetails(albumInfo.GetAlbum(), NULL, true);
-    
+
     return INFO_ADDED;
 }
 
@@ -1289,10 +1343,10 @@ INFO_RET CPictureInfoScanner::DownloadFaceInfo(const CFace& face, ADDON::Scraper
         m_handle->SetTitle(StringUtils::Format(g_localizeStrings.Get(20320), info->Name().c_str()));
         m_handle->SetText(face.strFace);
     }
-    
+
     // clear our scraper cache
     info->ClearCache();
-    
+
     CPictureInfoScraper scraper(info);
     bool bPictureBrainz = false;
     /*
@@ -1335,11 +1389,11 @@ INFO_RET CPictureInfoScanner::DownloadFaceInfo(const CFace& face, ADDON::Scraper
         else
             CLog::Log(LOGERROR,"Unable to find an url in nfo file: %s", strNfo.c_str());
     }
-    
+
     if (!scraper.GetFaceCount())
     {
         scraper.FindFaceInfo(face.strFace);
-        
+
         while (!scraper.Completed())
         {
             if (m_bStop)
@@ -1350,7 +1404,7 @@ INFO_RET CPictureInfoScanner::DownloadFaceInfo(const CFace& face, ADDON::Scraper
             Sleep(1);
         }
     }
-    
+
     int iSelectedFace = 0;
     if (result == CNfoFile::NO_NFO && !bPictureBrainz)
     {
@@ -1366,7 +1420,7 @@ INFO_RET CPictureInfoScanner::DownloadFaceInfo(const CFace& face, ADDON::Scraper
                     pDlg->SetHeading(g_localizeStrings.Get(21890));
                     pDlg->Reset();
                     pDlg->EnableButton(true, 413); // manual
-                    
+
                     for (int i = 0; i < scraper.GetFaceCount(); ++i)
                     {
                         /*
@@ -1387,23 +1441,23 @@ INFO_RET CPictureInfoScanner::DownloadFaceInfo(const CFace& face, ADDON::Scraper
                          */
                     }
                     pDlg->DoModal();
-                    
+
                     // and wait till user selects one
                     if (pDlg->GetSelectedLabel() < 0)
                     { // none chosen
                         if (!pDlg->IsButtonPressed())
                             return INFO_CANCELLED;
-                        
+
                         // manual button pressed
                         CStdString strNewFace = face.strFace;
                         if (!CGUIKeyboardFactory::ShowAndGetInput(strNewFace, g_localizeStrings.Get(16025), false)) return INFO_CANCELLED;
-                        
+
                         if (pDialog)
                         {
                             pDialog->SetLine(0, strNewFace);
                             pDialog->Progress();
                         }
-                        
+
                         CFace newFace;
                         newFace.strFace = strNewFace;
                         return DownloadFaceInfo(newFace, info, faceInfo, pDialog);
@@ -1415,7 +1469,7 @@ INFO_RET CPictureInfoScanner::DownloadFaceInfo(const CFace& face, ADDON::Scraper
         else
             return INFO_NOT_FOUND;
     }
-    
+
     scraper.LoadFaceInfo(iSelectedFace, face.strFace);
     while (!scraper.Completed())
     {
@@ -1426,15 +1480,15 @@ INFO_RET CPictureInfoScanner::DownloadFaceInfo(const CFace& face, ADDON::Scraper
         }
         Sleep(1);
     }
-    
+
     if (!scraper.Succeeded())
         return INFO_ERROR;
-    
+
     faceInfo = scraper.GetFace(iSelectedFace);
-    
+
     if (result == CNfoFile::COMBINED_NFO)
         nfoReader.GetDetails(faceInfo.GetFace(), NULL, true);
-    
+
     return INFO_ADDED;
 }
 
@@ -1445,46 +1499,46 @@ bool CPictureInfoScanner::ResolvePictureBrainz(const CStdString strPictureBrainz
     // search directly to the specific album.
     bool bPictureBrainz = false;
     ADDON::TYPE type = ScraperTypeFromContent(preferredScraper->Content());
-    
+
     CFileItemList items;
     ADDON::AddonPtr addon;
     ADDON::ScraperPtr defaultScraper;
     if (ADDON::CAddonMgr::Get().GetDefault(type, addon))
         defaultScraper = boost::dynamic_pointer_cast<CScraper>(addon);
-    
+
     vector<ScraperPtr> vecScrapers;
-    
+
     // add selected scraper - first proirity
     if (preferredScraper)
         vecScrapers.push_back(preferredScraper);
-    
+
     // Add all scrapers except selected and default
     VECADDONS addons;
     CAddonMgr::Get().GetAddons(type, addons);
-    
+
     for (unsigned i = 0; i < addons.size(); ++i)
     {
         ScraperPtr scraper = boost::dynamic_pointer_cast<CScraper>(addons[i]);
-        
+
         // skip if scraper requires settings and there's nothing set yet
         if (!scraper || (scraper->RequiresSettings() && !scraper->HasUserSettings()))
             continue;
-        
+
         if((!preferredScraper || preferredScraper->ID() != scraper->ID()) && (!defaultScraper || defaultScraper->ID() != scraper->ID()) )
             vecScrapers.push_back(scraper);
     }
-    
+
     // add default scraper - not user selectable so it's last priority
-    if(defaultScraper && 
+    if(defaultScraper &&
        (!preferredScraper || preferredScraper->ID() != defaultScraper->ID()) &&
        (!defaultScraper->RequiresSettings() || defaultScraper->HasUserSettings()))
         vecScrapers.push_back(defaultScraper);
-    
+
     for (unsigned int i=0; i < vecScrapers.size(); ++i)
     {
         if (vecScrapers[i]->Type() != type)
             continue;
-        
+
         vecScrapers[i]->ClearCache();
         try
         {
@@ -1499,7 +1553,7 @@ bool CPictureInfoScanner::ResolvePictureBrainz(const CStdString strPictureBrainz
         {
             Sleep(2000); // PictureBrainz rate-limits queries to 1 p.s - once we hit the rate-limiter
             // they start serving up the 'you hit the rate-limiter' page fast - meaning
-            // we will never get below the rate-limit threshold again in a specific run. 
+            // we will never get below the rate-limit threshold again in a specific run.
             // This helps us to avoidthe rate-limiter as far as possible.
             CLog::Log(LOGDEBUG,"-- nfo-scraper: %s",vecScrapers[i]->Name().c_str());
             CLog::Log(LOGDEBUG,"-- nfo url: %s", pictureBrainzURL.m_url[0].m_url.c_str());
@@ -1508,14 +1562,14 @@ bool CPictureInfoScanner::ResolvePictureBrainz(const CStdString strPictureBrainz
             break;
         }
     }
-    
+
     return bPictureBrainz;
 }
 
 map<string, string> CPictureInfoScanner::GetFaceArtwork(const CFace& face)
 {
     map<string, string> artwork;
-    
+
     // check thumb
     CStdString strFolder;
     CStdString thumb;
@@ -1536,7 +1590,7 @@ map<string, string> CPictureInfoScanner::GetFaceArtwork(const CFace& face)
         CTextureCache::Get().BackgroundCacheImage(thumb);
         artwork.insert(make_pair("thumb", thumb));
     }
-    
+
     // check fanart
     CStdString fanart;
     if (!face.strPath.IsEmpty())
@@ -1556,7 +1610,7 @@ map<string, string> CPictureInfoScanner::GetFaceArtwork(const CFace& face)
         CTextureCache::Get().BackgroundCacheImage(fanart);
         artwork.insert(make_pair("fanart", fanart));
     }
-    
+
     return artwork;
 }
 
@@ -1578,22 +1632,22 @@ int CPictureInfoScanner::CountFilesRecursively(const CStdString& strPath)
     // load subfolder
     CFileItemList items;
     CDirectory::GetDirectory(strPath, items, g_advancedSettings.m_pictureExtensions, DIR_FLAG_NO_FILE_DIRS);
-    
+
     if (m_bStop)
         return 0;
-    
+
     // true for recursive counting
     int count = CountFiles(items, true);
     return count;
 }
- 
+
 int CPictureInfoScanner::CountFiles(const CFileItemList &items, bool recursive)
 {
     int count = 0;
     for (int i=0; i<items.Size(); ++i)
     {
         const CFileItemPtr pItem=items[i];
-        
+
         if (recursive && pItem->m_bIsFolder)
             count+=CountFilesRecursively(pItem->GetPath());
         else if (pItem->IsAudio() && !pItem->IsPlayList() && !pItem->IsNFO())

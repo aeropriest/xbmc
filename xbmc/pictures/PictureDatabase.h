@@ -74,25 +74,25 @@ class CFileItemList;
 /*!
  \ingroup Picture
  \brief Class to store and read tag information
- 
+
  CPictureDatabase can be used to read and store
  tag information for faster access. It is based on
  sqlite (http://www.sqlite.org).
- 
+
  Here is the database layout:
  \image html Picturedatabase.png
- 
+
  \sa CPictureAlbum, CPicture, VECPICTURES, CMapPicture, VECFaceS, VECPICTUREALBUMS, VECGENRES
  */
 class CPictureDatabase : public CDatabase
 {
   friend class DatabaseUtils;
   friend class TestDatabaseUtilsHelper;
-  
+
 public:
   CPictureDatabase(void);
   virtual ~CPictureDatabase(void);
-  
+
   virtual bool Open();
   virtual bool CommitTransaction();
   void EmptyCache();
@@ -101,7 +101,7 @@ public:
   void DeletePictureAlbumInfo();
   bool LookupCDDBInfo(bool bRequery=false);
   void DeleteCDDBInfo();
-  
+
   /////////////////////////////////////////////////
   // Picture CRUD
   /////////////////////////////////////////////////
@@ -127,7 +127,13 @@ public:
    */
   int AddPicture(const int idAlbum, const CStdString& strTitle,  const CStdString& strOrientation, const CStdString& strPathAndFileName, const CStdString& strComment, const CStdString& strThumb, const std::vector<std::string>& Faces, const std::vector<std::string>& locations,const CStdString& dtTaken);
   int AddVideo(const int idAlbum, const CStdString& strTitle,  const CStdString& strOrientation, const CStdString& strPathAndFileName, const CStdString& strComment, const CStdString& strThumb, const std::vector<std::string>& Faces, const std::vector<std::string>& locations,const CStdString& dtTaken);
-  
+
+    void AddGeoLocation (int idPicture, int idAlbum, CStdString geoLatitude, CStdString geoLongitude, CStdString geoAltitude);
+    int openMapDB ();
+    void getGeoAddress (double dLatitude, double dLongitude, CStdString &cPlace, CStdString &cCity, CStdString &cCountry);
+
+
+
   /*! \brief Update a picture in the database
    \param idPicture [in] the database ID of the picture to update
    \param strTitle [in] the title of the picture (required to be non-empty)
@@ -150,7 +156,7 @@ public:
    */
   int UpdatePicture(int idPicture, const CStdString& strTitle, const CStdString& strPathAndFileName, const CStdString& strComment, const CStdString& strThumb, const std::vector<std::string>& Faces, const std::vector<std::string>& locations, const CStdString& dtTaken);
   // bool DeletePicture(int idPicture);
-  
+
   //// Misc Picture
   bool GetPictureByFileName(const CStdString& strFileName, CPicture& picture, int startOffset = 0);
   bool GetPicturesByPath(const CStdString& strPath, MAPPICTURES& pictures, bool bAppendToMap = false);
@@ -159,7 +165,7 @@ public:
   bool SetPictureRating(const CStdString &filePath, char rating);
   int  GetPictureByFaceAndPictureAlbumAndTitle(const CStdString& strFace, const CStdString& strPictureAlbum, const CStdString& strTitle);
   bool GetPicture(int idPicture, CPicture& picture);
-  
+
   /////////////////////////////////////////////////
   // PictureAlbum
   /////////////////////////////////////////////////
@@ -177,7 +183,7 @@ public:
    \param path the path we want to check
    */
   bool InsideScannedPath(const CStdString& path);
-  
+
   //// Misc PictureAlbum
   int  GetPictureAlbumIdByPath(const CStdString& path);
   bool GetPictureAlbumFromPicture(int idPicture, CPictureAlbum &PictureAlbum);
@@ -185,7 +191,7 @@ public:
   int  GetVideoAlbumByName(const CStdString& strPictureAlbum, const CStdString& strFace="");
   int  GetPictureAlbumByName(const CStdString& strPictureAlbum, const std::vector<std::string>& Face);
   CStdString GetPictureAlbumById(int id);
-  
+
   /////////////////////////////////////////////////
   // Face CRUD
   /////////////////////////////////////////////////
@@ -193,28 +199,28 @@ public:
   bool GetFace(int idFace, CFace& Face);
   int  UpdateFace(int idFace, const CFace& Face);
   bool DeleteFace(int idFace);
-  
+
   CStdString GetFaceById(int id);
   int GetFaceByName(const CStdString& strFace);
-  
+
   /////////////////////////////////////////////////
   // Paths
   /////////////////////////////////////////////////
   int AddPath(const CStdString& strPath);
-  
+
   bool GetPaths(std::set<std::string> &paths);
   bool SetPathHash(const CStdString &path, const CStdString &hash);
   bool GetPathHash(const CStdString &path, CStdString &hash);
   bool GetPictureAlbumPath(int idPictureAlbum, CStdString &path);
   bool GetFacePath(int idFace, CStdString &path);
-  
+
   /////////////////////////////////////////////////
   // Locations
   /////////////////////////////////////////////////
   int AddLocation(const CStdString& strLocation);
   CStdString GetLocationById(int id);
   int GetLocationByName(const CStdString& strLocation);
-  
+
   /////////////////////////////////////////////////
   // PictureAlbumInfo
   /////////////////////////////////////////////////
@@ -224,7 +230,7 @@ public:
   bool DeletePictureAlbumInfo(int idFace);
   bool SetPictureAlbumInfoPictures(int idPictureAlbumInfo, const VECPICTURES& pictures);
   bool GetPictureAlbumInfoPictures(int idPictureAlbumInfo, VECPICTURES& pictures);
-  
+
   /////////////////////////////////////////////////
   // FaceInfo
   /////////////////////////////////////////////////
@@ -236,31 +242,31 @@ public:
   int SetFaceInfo(int idFace, const CFace& Face);
   bool GetFaceInfo(int idFace, CFace &info, bool needAll=true);
   bool DeleteFaceInfo(int idFace);
-  
+
   /////////////////////////////////////////////////
   // Link tables
   /////////////////////////////////////////////////
   bool AddPictureAlbumFace(int idFace, int idPictureAlbum, std::string joinPhrase, bool featured, int iOrder);
   bool GetPictureAlbumsByFace(int idFace, bool includeFeatured, std::vector<int>& PictureAlbums);
   bool GetFacesByPictureAlbum(int idPictureAlbum, bool includeFeatured, std::vector<int>& Faces);
-  
+
   bool AddPictureFace(int idFace, int idPicture, std::string joinPhrase, bool featured, int iOrder);
   bool GetPicturesByFace(int idFace, bool includeFeatured, std::vector<int>& pictures);
   bool GetFacesByPicture(int idPicture, bool includeFeatured, std::vector<int>& Faces);
-  
+
   bool AddPictureLocation(int idLocation, int idPicture, int iOrder);
   bool GetLocationsByPicture(int idPicture, std::vector<int>& locations);
-  
+
   bool AddPictureAlbumLocation(int idLocation, int idPictureAlbum, int iOrder);
   bool GetLocationsByPictureAlbum(int idPictureAlbum, std::vector<int>& locations);
-  
+
   /////////////////////////////////////////////////
   // Top 100
   /////////////////////////////////////////////////
   bool GetTop100(const CStdString& strBaseDir, CFileItemList& items);
   bool GetTop100PictureAlbums(VECPICTUREALBUMS& PictureAlbums);
   bool GetTop100PictureAlbumPictures(const CStdString& strBaseDir, CFileItemList& item);
-  
+
   /////////////////////////////////////////////////
   // Recently added
   /////////////////////////////////////////////////
@@ -268,8 +274,8 @@ public:
   bool GetRecentlyAddedPictureAlbumPictures(const CStdString& strBaseDir, CFileItemList& item, unsigned int limit=0, const CStdString &pictureType  = "Picture");
   bool GetRecentlyPlayedPictureAlbums(VECPICTUREALBUMS& PictureAlbums);
   bool GetRecentlyPlayedPictureAlbumPictures(const CStdString& strBaseDir, CFileItemList& item, const CStdString &pictureType);
-  
-  
+
+
   /////////////////////////////////////////////////
   // Compilations
   /////////////////////////////////////////////////
@@ -279,14 +285,14 @@ public:
   bool GetVariousFacesPictureAlbums(const CStdString& strBaseDir, CFileItemList& items);
   bool GetVariousFacesPictureAlbumsPictures(const CStdString& strBaseDir, CFileItemList& items);
   int GetVariousFacesPictureAlbumsCount();
-  
+
   /*! \brief Increment the playcount of an item
    Increments the playcount and updates the last played date
    \param item CFileItem to increment the playcount for
    */
   void IncrementPlayCount(const CFileItem &item);
   bool CleanupOrphanedItems();
-  
+
   /////////////////////////////////////////////////
   // VIEWS
   /////////////////////////////////////////////////
@@ -310,19 +316,19 @@ public:
   int GetPicturesCount(const Filter &filter = Filter());
   unsigned int GetPictureIDs(const Filter &filter, std::vector<std::pair<int,int> > &pictureIDs);
   virtual bool GetFilter(CDbUrl &PictureUrl, Filter &filter, SortDescription &sorting);
-  
+
   /////////////////////////////////////////////////
   // Scraper
   /////////////////////////////////////////////////
   bool SetScraperForPath(const CStdString& strPath, const ADDON::ScraperPtr& info);
   bool GetScraperForPath(const CStdString& strPath, ADDON::ScraperPtr& info, const ADDON::TYPE &type);
-  
+
   /*! \brief Check whether a given scraper is in use.
    \param scraperID the scraper to check for.
    \return true if the scraper is in use, false otherwise.
    */
   bool ScraperInUse(const CStdString &scraperID) const;
-  
+
   /////////////////////////////////////////////////
   // Karaoke
   /////////////////////////////////////////////////
@@ -332,27 +338,27 @@ public:
   int GetKaraokePicturesCount();
   void ExportKaraokeInfo(const CStdString &outFile, bool asHTML );
   void ImportKaraokeInfo(const CStdString &inputFile );
-  
+
   /////////////////////////////////////////////////
   // Filters
   /////////////////////////////////////////////////
   bool GetItems(const CStdString &strBaseDir, CFileItemList &items, const Filter &filter = Filter(), const SortDescription &sortDescription = SortDescription());
   bool GetItems(const CStdString &strBaseDir, const CStdString &itemType, CFileItemList &items, const Filter &filter = Filter(), const SortDescription &sortDescription = SortDescription());
   CStdString GetItemById(const CStdString &itemType, int id);
-  
+
   /////////////////////////////////////////////////
   // XML
   /////////////////////////////////////////////////
   void ExportToXML(const CStdString &xmlFile, bool singleFiles = false, bool images=false, bool overwrite=false);
   void ImportFromXML(const CStdString &xmlFile);
-  
+
   /////////////////////////////////////////////////
   // Properties
   /////////////////////////////////////////////////
   void SetPropertiesForFileItem(CFileItem& item);
   static void SetPropertiesFromFace(CFileItem& item, const CFace& Face);
   static void SetPropertiesFromPictureAlbum(CFileItem& item, const CPictureAlbum& PictureAlbum);
-  
+
   /////////////////////////////////////////////////
   // Art
   /////////////////////////////////////////////////
@@ -366,7 +372,7 @@ public:
    \sa GetArtForItem
    */
   void SetArtForItem(int mediaId, const std::string &mediaType, const std::string &artType, const std::string &url);
-  
+
   /*! \brief Sets art for a database item.
    Sets multiple pieces of art for a database item.
    \param mediaId the id in the media (picture/Face/PictureAlbum) table.
@@ -375,7 +381,7 @@ public:
    \sa GetArtForItem
    */
   void SetArtForItem(int mediaId, const std::string &mediaType, const std::map<std::string, std::string> &art);
-  
+
   /*! \brief Fetch art for a database item.
    Fetches multiple pieces of art for a database item.
    \param mediaId the id in the media (picture/Face/PictureAlbum) table.
@@ -385,7 +391,7 @@ public:
    \sa SetArtForItem
    */
   bool GetArtForItem(int mediaId, const std::string &mediaType, std::map<std::string, std::string> &art);
-  
+
   /*! \brief Fetch art for a database item.
    Fetches a single piece of art for a database item.
    \param mediaId the id in the media (picture/Face/PictureAlbum) table.
@@ -395,7 +401,7 @@ public:
    \sa SetArtForItem
    */
   std::string GetArtForItem(int mediaId, const std::string &mediaType, const std::string &artType);
-  
+
   /*! \brief Fetch Face art for a picture or PictureAlbum item.
    Fetches the art associated with the primary Face for the picture or PictureAlbum.
    \param mediaId the id in the media (picture/PictureAlbum) table.
@@ -405,7 +411,7 @@ public:
    \sa GetArtForItem
    */
   bool GetFaceArtForItem(int mediaId, const std::string &mediaType, std::map<std::string, std::string> &art);
-  
+
   /*! \brief Fetch Face art for a picture or PictureAlbum item.
    Fetches a single piece of art associated with the primary Face for the picture or PictureAlbum.
    \param mediaId the id in the media (picture/PictureAlbum) table.
@@ -415,25 +421,25 @@ public:
    \sa GetArtForItem
    */
   std::string GetFaceArtForItem(int mediaId, const std::string &mediaType, const std::string &artType);
-  
+
 protected:
   std::map<CStdString, int> m_FaceCache;
   std::map<CStdString, int> m_locationCache;
   std::map<CStdString, int> m_pathCache;
   std::map<CStdString, int> m_thumbCache;
   std::map<CStdString, CPictureAlbum> m_albumCache;
-  
+
   virtual bool CreateTables();
   virtual int GetMinVersion() const;
-  
+
   const char *GetBaseDBName() const;
-  
-  
+
+
 private:
   /*! \brief (Re)Create the generic database views for pictures and PictureAlbums
    */
   virtual void CreateViews();
-  
+
   void SplitString(const CStdString &multiString, std::vector<std::string> &vecStrings, CStdString &extraStrings);
   CPicture GetPictureFromDataset(bool bWithPictureDbPath=false);
   CFace GetFaceFromDataset(dbiplus::Dataset* pDS, bool needThumb = true);
@@ -454,7 +460,7 @@ private:
   bool SearchPictureAlbums(const CStdString& search, CFileItemList &PictureAlbums);
   bool SearchPictures(const CStdString& strSearch, CFileItemList &pictures);
   int GetPictureIDFromPath(const CStdString &filePath);
-  
+
   // Fields should be ordered as they
   // appear in the pictureview
   enum _PictureFields
@@ -473,7 +479,7 @@ private:
     picture_idThumb,
     picture_strPath
   } PictureFields;
-  
+
   // Fields should be ordered as they
   // appear in the PictureAlbumview
   enum _PictureAlbumFields
@@ -485,7 +491,7 @@ private:
     album_idAlbumInfo,
     album_strThumbURL,
   } PictureAlbumFields;
-  
+
   enum _FaceFields
   {
     face_idFace=0,
