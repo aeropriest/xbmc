@@ -42,6 +42,8 @@
 
 
 #include "cores/dvdplayer/DVDFileInfo.h"
+#include "guilib/Texture.h"
+#include "video/FFmpegVideoDecoder.h"
 
 
 using namespace PICTURE_INFO;
@@ -464,6 +466,99 @@ JSONRPC_STATUS CPictureLibrary::AddPicture(const CStdString &method, ITransportL
   return GetPictures(method, transport, client, parameterObject, result);
 }
 
+bool CPictureLibrary::GenerateThumbnailForVideo(const CStdString videoPath, const CStdString thumbnailPath)
+{
+  FFmpegVideoDecoder * m_decoder = new FFmpegVideoDecoder();
+  CBaseTexture    *m_texture = 0;
+  
+  if ( !m_decoder->open( videoPath ) )
+  {
+    CLog::Log( LOGERROR, "Loading thumnail for video: %s, video file %s", m_decoder->getErrorMsg().c_str(), videoPath.c_str());
+    return false;
+  }
+  
+  CLog::Log( LOGERROR, "Loading thumnail for video: %s, video file %s thumbai at %s", m_decoder->getErrorMsg().c_str(), videoPath.c_str(),thumbnailPath.c_str());
+  
+  int m_videoWidth = m_decoder->getWidth();
+  int m_videoHeight = m_decoder->getHeight();
+  CStdString m_curVideoFile = videoPath;
+  
+#ifdef _SCALE_THUMBNAIL_FOR_USER_GENERATED_VIDEO_
+  
+  // Find out the necessary aspect ratio for height (assuming fit by width) and width (assuming fit by height)
+  const RESOLUTION_INFO info = g_graphicsContext.GetResInfo();
+  int m_displayLeft   = info.Overscan.left;
+  int m_displayRight  = info.Overscan.right;
+  int m_displayTop    = info.Overscan.top;
+  int m_displayBottom = info.Overscan.bottom;
+  
+  int screen_width = m_displayRight - m_displayLeft;
+  int screen_height = m_displayBottom - m_displayTop;
+  
+  // Do we need to modify the output video size? This could happen in two cases:
+  // 1. Either video dimension is larger than the screen - video needs to be downscaled
+  // 2. Both video dimensions are smaller than the screen - video needs to be upscaled
+  if ( ( m_videoWidth > 0 && m_videoHeight > 0 )
+      && ( ( m_videoWidth > screen_width || m_videoHeight > screen_height )
+          || ( m_videoWidth < screen_width && m_videoHeight < screen_height ) ) )
+  {
+    // Calculate the scale coefficients for width/height separately
+    double scale_width = (double) screen_width / (double) m_videoWidth;
+    double scale_height = (double) screen_height / (double) m_videoHeight;
+    
+    // And apply the smallest
+    double scale = scale_width < scale_height ? scale_width : scale_height;
+    m_videoWidth = (int) (m_videoWidth * scale);
+    m_videoHeight = (int) (m_videoHeight * scale);
+  }
+  
+  // Calculate the desktop dimensions to show the video
+  if ( m_videoWidth < screen_width || m_videoHeight < screen_height )
+  {
+    m_displayLeft = (screen_width - m_videoWidth) / 2;
+    m_displayRight -= m_displayLeft;
+    
+    m_displayTop = (screen_height - m_videoHeight) / 2;
+    m_displayBottom -= m_displayTop;
+  }
+#endif
+  double m_millisecondsPerFrame = 1.0 / m_decoder->getFramesPerSecond();
+  
+  CLog::Log( LOGDEBUG, "AddVideo Background: Video file %s (%dx%d) length %g seconds opened successfully",
+            videoPath.c_str(),
+            m_decoder->getWidth(), m_decoder->getHeight(),
+            m_decoder->getDuration(),
+            m_videoWidth, m_videoHeight );
+  
+  
+  m_decoder->seek( 0.0 );
+  
+  // Allocate the texture
+  m_texture = new CTexture( m_videoWidth, m_videoHeight, XB_FMT_A8R8G8B8 );
+  
+  if ( !m_texture )
+  {
+    CLog::Log( LOGERROR, "Karaoke Video Background: Could not allocate texture" );
+    return false;
+  }
+  if ( !m_decoder->nextFrame( m_texture ) )
+  {
+    CLog::Log( LOGERROR, "Karaoke Video Background: Could not allocate texture" );
+    return false;
+  }
+  
+  if( !CPicture::CreateThumbnailFromSurface(m_texture->GetPixels(), m_videoWidth, m_videoHeight, m_texture->GetPitch(), thumbnailPath) )
+  {
+    return false;
+  }
+  m_decoder->close();
+  delete m_decoder;
+  delete m_texture;
+  
+  return true;
+}
+
+
 JSONRPC_STATUS CPictureLibrary::AddVideo(const CStdString &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
 {
   CPictureDatabase picturedatabase;
@@ -486,8 +581,14 @@ JSONRPC_STATUS CPictureLibrary::AddVideo(const CStdString &method, ITransportLay
   
   //create the thumbnail and pass it in
   CStdString strPicturePath = shares->at(0).strPath + strThumb;
+  CStdString strVideoPath = shares->at(0).strPath + strTitle;
   CStdString strFaces = parameterObject["faces"].c_str();
   int idAlbum = picturedatabase.GetVideoAlbumByName(strAlbum);
+  
+  if( !GenerateThumbnailForVideo(strVideoPath,strPicturePath) )
+  {
+    return InvalidParams;
+  }
   
   if(idAlbum <= 0 )
   {
@@ -515,6 +616,7 @@ JSONRPC_STATUS CPictureLibrary::AddVideo(const CStdString &method, ITransportLay
   
   if( idPicture <=0 )
     return InternalError;
+  
   
   // set the thumbnail for photo
   CTextureCache::Get().BackgroundCacheImage(strPicturePath);

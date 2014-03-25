@@ -82,5 +82,6 @@ namespace JSONRPC
     static void FillPictureAlbumItem(const CPictureAlbum &album, const CStdString &path, CFileItemPtr &item);
     
     static bool CheckForAdditionalProperties(const CVariant &properties, const std::set<std::string> &checkProperties, std::set<std::string> &foundProperties);
+    static bool GenerateThumbnailForVideo(const CStdString videoPath, const CStdString thumbnailPath);
   };
 }
