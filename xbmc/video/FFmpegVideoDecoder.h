@@ -24,15 +24,16 @@
 #include "utils/StdString.h"
 
 class CBaseTexture;
-class m_dllAvFormat;
-class m_dllAvCodec;
-class m_dllAvUtil;
-class m_dllSwScale;
+class DllAvFormat;
+class DllAvCodec;
+class DllAvUtil;
+class DllSwScale;
 
 struct AVFormatContext;
 struct AVCodecContext;
 struct AVCodec;
 struct AVFrame;
+struct AVPicture;
 
 /**
  * A simple FFMpeg-based background video decoder.
