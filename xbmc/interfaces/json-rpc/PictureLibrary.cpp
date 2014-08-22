@@ -152,8 +152,8 @@ JSONRPC_STATUS CPictureLibrary::GetPictureAlbums(const CStdString &method, ITran
     locationID = (int)filter["locationid"].asInteger();
   else if (filter.isMember("location"))
     pictureUrl.AddOption("location", filter["location"].asString());
-  else if (filter.isMember("picturetype"))
-    pictureUrl.AddOption("picturetype", filter["picturetype"].asString());
+  else if (filter.isMember("strPictureType"))
+    pictureUrl.AddOption("strPictureType", filter["strPictureType"].asString());
   else if (filter.isObject())
   {
     CStdString xsp;
@@ -203,8 +203,8 @@ JSONRPC_STATUS CPictureLibrary::GetVideoAlbums(const CStdString &method, ITransp
     locationID = (int)filter["locationid"].asInteger();
   else if (filter.isMember("location"))
     pictureUrl.AddOption("location", filter["location"].asString());
-  else if (filter.isMember("picturetype"))
-    pictureUrl.AddOption("picturetype", filter["picturetype"].asString());
+  else if (filter.isMember("strPictureType"))
+    pictureUrl.AddOption("strPictureType", filter["strPictureType"].asString());
   else if (filter.isObject())
   {
     CStdString xsp;
@@ -411,7 +411,7 @@ JSONRPC_STATUS CPictureLibrary::AddPicture(const CStdString &method, ITransportL
   CStdString strComment = parameterObject["comment"].c_str();
   CStdString strLocation = parameterObject["location"].c_str();
   CStdString strTaken = parameterObject["takenon"].c_str();
-  CStdString strType = parameterObject["picturetype"].c_str();
+  CStdString strType = parameterObject["strPictureType"].c_str();
   CStdString strOrientation = parameterObject["orientation"].c_str();
   
   //take the first source as the path
@@ -565,16 +565,17 @@ JSONRPC_STATUS CPictureLibrary::AddVideo(const CStdString &method, ITransportLay
   if (!picturedatabase.Open())
     return InternalError;
   
+
+
   CStdString strAlbum = parameterObject["album"].c_str();
   CStdString strTitle = parameterObject["title"].c_str();
   CStdString strThumb = parameterObject["thumbnail"].c_str();
   CStdString strComment = parameterObject["comment"].c_str();
   CStdString strLocation = parameterObject["location"].c_str();
   CStdString strTaken = parameterObject["takenon"].c_str();
-  CStdString strType = parameterObject["picturetype"].c_str();
+  CStdString strType = parameterObject["strPictureType"].c_str();
   CStdString strOrientation = parameterObject["orientation"].c_str();
-  
-  //take the first source as the path
+  //take the first source on sources.xml as the path
   VECSOURCES *shares = CMediaSourceSettings::Get().GetSources("videos");
   if( !shares )
     return InternalError;
@@ -589,7 +590,7 @@ JSONRPC_STATUS CPictureLibrary::AddVideo(const CStdString &method, ITransportLay
   {
     return InvalidParams;
   }
-  
+
   if(idAlbum <= 0 )
   {
     idAlbum = picturedatabase.AddVideoAlbum(strAlbum, strFaces, strLocation);
@@ -654,8 +655,8 @@ JSONRPC_STATUS CPictureLibrary::GetPictures(const CStdString &method, ITransport
     albumID = (int)filter["albumid"].asInteger();
   else if (filter.isMember("album"))
     pictureUrl.AddOption("album", filter["album"].asString());
-  else if (filter.isMember("picturetype"))
-    pictureUrl.AddOption("picturetype", filter["picturetype"].asString());
+  else if (filter.isMember("strPictureType"))
+    pictureUrl.AddOption("strPictureType", filter["strPictureType"].asString());
   else if (filter.isObject())
   {
     CStdString xsp;
@@ -717,8 +718,8 @@ JSONRPC_STATUS CPictureLibrary::GetVideos(const CStdString &method, ITransportLa
     albumID = (int)filter["albumid"].asInteger();
   else if (filter.isMember("album"))
     pictureUrl.AddOption("album", filter["album"].asString());
-  else if (filter.isMember("picturetype"))
-    pictureUrl.AddOption("picturetype", filter["picturetype"].asString());
+  else if (filter.isMember("strPictureType"))
+    pictureUrl.AddOption("strPictureType", filter["strPictureType"].asString());
   else if (filter.isObject())
   {
     CStdString xsp;
@@ -820,8 +821,8 @@ JSONRPC_STATUS CPictureLibrary::GetRecentlyAddedPictures(const CStdString &metho
     amount = 0;
   
   CFileItemList items;
-  CStdString pictureType  = "Picture";
-  if (!picturedatabase.GetRecentlyAddedPictureAlbumPictures("picturedb://", items, (unsigned int)amount), pictureType)
+  CStdString strPictureType  = "Picture";
+  if (!picturedatabase.GetRecentlyAddedPictureAlbumPictures("picturedb://", items, (unsigned int)amount), strPictureType)
     return InternalError;
   
   JSONRPC_STATUS ret = GetAdditionalPictureDetails(parameterObject, items, picturedatabase);
@@ -868,8 +869,8 @@ JSONRPC_STATUS CPictureLibrary::GetRecentlyPlayedPictures(const CStdString &meth
     return InternalError;
   
   CFileItemList items;
-  CStdString pictureType = "Picture";
-  if (!picturedatabase.GetRecentlyPlayedPictureAlbumPictures("picturedb://", items, pictureType))
+  CStdString strPictureType = "Picture";
+  if (!picturedatabase.GetRecentlyPlayedPictureAlbumPictures("picturedb://", items, strPictureType))
     return InternalError;
   
   JSONRPC_STATUS ret = GetAdditionalPictureDetails(parameterObject, items, picturedatabase);
@@ -943,8 +944,8 @@ JSONRPC_STATUS CPictureLibrary::GetRecentlyAddedVideos(const CStdString &method,
     amount = 0;
   
   CFileItemList items;
-  CStdString pictureType = "Picture";
-  if (!picturedatabase.GetRecentlyAddedPictureAlbumPictures("picturedb://", items, (unsigned int)amount,pictureType))
+  CStdString strPictureType = "Picture";
+  if (!picturedatabase.GetRecentlyAddedPictureAlbumPictures("picturedb://", items, (unsigned int)amount,strPictureType))
     return InternalError;
   
   JSONRPC_STATUS ret = GetAdditionalPictureDetails(parameterObject, items, picturedatabase);
@@ -991,8 +992,8 @@ JSONRPC_STATUS CPictureLibrary::GetRecentlyPlayedVideos(const CStdString &method
     return InternalError;
   
   CFileItemList items;
-  CStdString pictureType = "Picture";
-  if (!picturedatabase.GetRecentlyPlayedPictureAlbumPictures("picturedb://", items, pictureType))
+  CStdString strPictureType = "Picture";
+  if (!picturedatabase.GetRecentlyPlayedPictureAlbumPictures("picturedb://", items, strPictureType))
     return InternalError;
   
   JSONRPC_STATUS ret = GetAdditionalPictureDetails(parameterObject, items, picturedatabase);
@@ -1090,7 +1091,7 @@ JSONRPC_STATUS CPictureLibrary::SetPictureAlbumDetails(const CStdString &method,
   if (ParameterNotNull(parameterObject, "style"))
     CopyStringArray(parameterObject["style"], album.styles);
   if (ParameterNotNull(parameterObject, "type"))
-    album.strPictureType = parameterObject["picturetype"].asString();
+    album.strPictureType = parameterObject["strPictureType"].asString();
   if (ParameterNotNull(parameterObject, "albumlabel"))
     album.strLabel = parameterObject["albumlabel"].asString();
   

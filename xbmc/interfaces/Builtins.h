@@ -22,11 +22,15 @@
 
 #include "utils/StdString.h"
 
+
+class CPictureDatabase; // ezee
+class CPictureAlbum; // ezee
+
 class CBuiltins
 {
 public:
   static bool HasCommand(const CStdString& execString);
   static void GetHelp(CStdString &help);
   static int Execute(const CStdString& execString);
-};
 
+};

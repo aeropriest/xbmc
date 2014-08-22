@@ -26,7 +26,7 @@ CLEANFILES =
 DISTCLEANFILES =
 MAINTAINERCLEANFILES =
 
-AM_CPPFLAGS =
+AM_CPPFLAGS = -fPIC
 
 ## begin gnulib module alloca
 

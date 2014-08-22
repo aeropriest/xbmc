@@ -345,7 +345,7 @@ bool CRecentlyAddedJob::UpdatePicture()
   if (picturedatabase.GetRecentlyAddedPictureAlbumPictures("picturedb://recentlyaddedpictures/", pictureItems, NUM_ITEMS, pictureType))
   {
     
-    long idPictureAlbum = -1;
+    long idAlbum = -1;
     CStdString strPictureAlbumThumb;
     CStdString strPictureAlbumFanart;
     for (; i < pictureItems.Size(); ++i)
@@ -358,11 +358,11 @@ bool CRecentlyAddedJob::UpdatePicture()
       CStdString   strPictureAlbum  = item->GetPictureInfoTag()->GetPictureAlbum();
       CStdString   strFace = StringUtils::Join(item->GetPictureInfoTag()->GetFace(), g_advancedSettings.m_pictureItemSeparator);
       
-      if (idPictureAlbum != item->GetPictureInfoTag()->GetPictureAlbumId())
+      if (idAlbum != item->GetPictureInfoTag()->GetPictureAlbumId())
       {
         strPictureAlbumThumb.clear();
         strPictureAlbumFanart.clear();
-        idPictureAlbum = item->GetPictureInfoTag()->GetPictureAlbumId();
+        idAlbum = item->GetPictureInfoTag()->GetPictureAlbumId();
         
         if (loader.LoadItem(item.get()))
         {
@@ -382,6 +382,7 @@ bool CRecentlyAddedJob::UpdatePicture()
       
     }
   }
+ 
   for (; i < NUM_ITEMS; ++i)
   {
     CStdString value;
@@ -421,7 +422,7 @@ bool CRecentlyAddedJob::UpdatePicture()
       strThumb = picturedatabase.GetArtForItem(album.idAlbum, "album", "thumb");
       strFanart = picturedatabase.GetFaceArtForItem(album.idAlbum, "album", "fanart");
       strDBpath.Format("picturedb://albums/%i/", album.idAlbum);
-      strSQLPictureAlbum.Format("idPictureAlbum=%i", album.idAlbum);
+      strSQLPictureAlbum.Format("idAlbum=%i", album.idAlbum);
       
       
       
@@ -485,7 +486,7 @@ bool CRecentlyAddedJob::UpdateVideos()
   if (picturedatabase.GetRecentlyAddedPictureAlbumPictures("picturedb://recentlyaddedpictures/", pictureItems, NUM_ITEMS, pictureType))
   {
     
-    long idPictureAlbum = -1;
+    long idAlbum = -1;
     CStdString strPictureAlbumThumb;
     CStdString strPictureAlbumFanart;
     for (; i < pictureItems.Size(); ++i)
@@ -498,11 +499,11 @@ bool CRecentlyAddedJob::UpdateVideos()
       CStdString   strPictureAlbum  = item->GetPictureInfoTag()->GetPictureAlbum();
       CStdString   strFace = StringUtils::Join(item->GetPictureInfoTag()->GetFace(), g_advancedSettings.m_pictureItemSeparator);
       
-      if (idPictureAlbum != item->GetPictureInfoTag()->GetPictureAlbumId())
+      if (idAlbum != item->GetPictureInfoTag()->GetPictureAlbumId())
       {
         strPictureAlbumThumb.clear();
         strPictureAlbumFanart.clear();
-        idPictureAlbum = item->GetPictureInfoTag()->GetPictureAlbumId();
+        idAlbum = item->GetPictureInfoTag()->GetPictureAlbumId();
       }
       
       
@@ -556,7 +557,7 @@ bool CRecentlyAddedJob::UpdateVideos()
       strThumb = picturedatabase.GetArtForItem(album.idAlbum, "album", "thumb");
       strFanart = picturedatabase.GetFaceArtForItem(album.idAlbum, "album", "fanart");
       strDBpath.Format("picturedb://albums/%i/", album.idAlbum);
-      strSQLPictureAlbum.Format("idPictureAlbum=%i", album.idAlbum);
+      strSQLPictureAlbum.Format("idAlbum=%i", album.idAlbum);
       
       
       

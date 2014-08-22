@@ -30,7 +30,7 @@ namespace XFILE
         public:
             CQueryParams();
             long GetFaceId() { return m_idFace; }
-            long GetPictureAlbumId() { return m_idPictureAlbum; }
+            long GetPictureAlbumId() { return m_idAlbum; }
             long GetLocationId() { return m_idLocation; }
             long GetPictureId() { return m_idPicture; }
             long GetYear() { return m_year; }
@@ -41,7 +41,7 @@ namespace XFILE
             friend class CDirectoryNode;
         private:
             long m_idFace;
-            long m_idPictureAlbum;
+            long m_idAlbum;
             long m_idLocation;
             long m_idPicture;
             long m_year;

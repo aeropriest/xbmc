@@ -106,7 +106,7 @@ public:
   // Picture CRUD
   /////////////////////////////////////////////////
   /*! \brief Add a picture to the database
-   \param idPictureAlbum [in] the database ID of the PictureAlbum for the picture
+   \param idAlbum [in] the database ID of the PictureAlbum for the picture
    \param strTitle [in] the title of the picture (required to be non-empty)
    \param strPictureBrainzTrackID [in] the PictureBrainz track ID of the picture
    \param strPathAndFileName [in] the path and filename to the picture
@@ -170,9 +170,9 @@ public:
    */
   int  AddPictureAlbum(const CStdString& strPictureAlbum, const CStdString& strFace, const CStdString& strLocation);
   int  AddVideoAlbum(const CStdString& strPictureAlbum, const CStdString& strFace, const CStdString& strLocation);
-  bool GetPictureAlbum(int idPictureAlbum, CPictureAlbum& PictureAlbum);
-  int  UpdatePictureAlbum(int idPictureAlbum, const CPictureAlbum &PictureAlbum);
-  bool DeletePictureAlbum(int idPictureAlbum);
+  bool GetPictureAlbum(int idAlbum, CPictureAlbum& PictureAlbum);
+  int  UpdatePictureAlbum(int idAlbum, const CPictureAlbum &PictureAlbum);
+  bool DeletePictureAlbum(int idAlbum);
   /*! \brief Checks if the given path is inside a folder that has already been scanned into the library
    \param path the path we want to check
    */
@@ -205,7 +205,7 @@ public:
   bool GetPaths(std::set<std::string> &paths);
   bool SetPathHash(const CStdString &path, const CStdString &hash);
   bool GetPathHash(const CStdString &path, CStdString &hash);
-  bool GetPictureAlbumPath(int idPictureAlbum, CStdString &path);
+  bool GetPictureAlbumPath(int idAlbum, CStdString &path);
   bool GetFacePath(int idFace, CStdString &path);
   
   /////////////////////////////////////////////////
@@ -218,12 +218,12 @@ public:
   /////////////////////////////////////////////////
   // PictureAlbumInfo
   /////////////////////////////////////////////////
-  bool HasPictureAlbumInfo(int idPictureAlbum);
-  int SetPictureAlbumInfo(int idPictureAlbum, const CPictureAlbum& PictureAlbum, const VECPICTURES& pictures, bool bTransaction=true);
-  bool GetPictureAlbumInfo(int idPictureAlbum, CPictureAlbum &info, VECPICTURES* pictures, bool scrapedInfo = false);
+  bool HasPictureAlbumInfo(int idAlbum);
+  int SetPictureAlbumInfo(int idAlbum, const CPictureAlbum& PictureAlbum, const VECPICTURES& pictures, bool bTransaction=true);
+  bool GetPictureAlbumInfo(int idAlbum, CPictureAlbum &info, VECPICTURES* pictures, bool scrapedInfo = false);
   bool DeletePictureAlbumInfo(int idFace);
-  bool SetPictureAlbumInfoPictures(int idPictureAlbumInfo, const VECPICTURES& pictures);
-  bool GetPictureAlbumInfoPictures(int idPictureAlbumInfo, VECPICTURES& pictures);
+  bool SetPictureAlbumInfoPictures(int idAlbumInfo, const VECPICTURES& pictures);
+  bool GetPictureAlbumInfoPictures(int idAlbumInfo, VECPICTURES& pictures);
   
   /////////////////////////////////////////////////
   // FaceInfo
@@ -240,9 +240,9 @@ public:
   /////////////////////////////////////////////////
   // Link tables
   /////////////////////////////////////////////////
-  bool AddPictureAlbumFace(int idFace, int idPictureAlbum, std::string joinPhrase, bool featured, int iOrder);
+  bool AddPictureAlbumFace(int idFace, int idAlbum, std::string joinPhrase, bool featured, int iOrder);
   bool GetPictureAlbumsByFace(int idFace, bool includeFeatured, std::vector<int>& PictureAlbums);
-  bool GetFacesByPictureAlbum(int idPictureAlbum, bool includeFeatured, std::vector<int>& Faces);
+  bool GetFacesByPictureAlbum(int idAlbum, bool includeFeatured, std::vector<int>& Faces);
   
   bool AddPictureFace(int idFace, int idPicture, std::string joinPhrase, bool featured, int iOrder);
   bool GetPicturesByFace(int idFace, bool includeFeatured, std::vector<int>& pictures);
@@ -251,8 +251,8 @@ public:
   bool AddPictureLocation(int idLocation, int idPicture, int iOrder);
   bool GetLocationsByPicture(int idPicture, std::vector<int>& locations);
   
-  bool AddPictureAlbumLocation(int idLocation, int idPictureAlbum, int iOrder);
-  bool GetLocationsByPictureAlbum(int idPictureAlbum, std::vector<int>& locations);
+  bool AddPictureAlbumLocation(int idLocation, int idAlbum, int iOrder);
+  bool GetLocationsByPictureAlbum(int idAlbum, std::vector<int>& locations);
   
   /////////////////////////////////////////////////
   // Top 100
@@ -264,10 +264,10 @@ public:
   /////////////////////////////////////////////////
   // Recently added
   /////////////////////////////////////////////////
-  bool GetRecentlyAddedPictureAlbums(VECPICTUREALBUMS& PictureAlbums, unsigned int limit=0, const CStdString &pictureType = "Picture");
-  bool GetRecentlyAddedPictureAlbumPictures(const CStdString& strBaseDir, CFileItemList& item, unsigned int limit=0, const CStdString &pictureType  = "Picture");
+  bool GetRecentlyAddedPictureAlbums(VECPICTUREALBUMS& PictureAlbums, unsigned int limit=0, const CStdString &strPictureType = "Picture");
+  bool GetRecentlyAddedPictureAlbumPictures(const CStdString& strBaseDir, CFileItemList& item, unsigned int limit=0, const CStdString &strPictureType  = "Picture");
   bool GetRecentlyPlayedPictureAlbums(VECPICTUREALBUMS& PictureAlbums);
-  bool GetRecentlyPlayedPictureAlbumPictures(const CStdString& strBaseDir, CFileItemList& item, const CStdString &pictureType);
+  bool GetRecentlyPlayedPictureAlbumPictures(const CStdString& strBaseDir, CFileItemList& item, const CStdString &strPictureType);
   
   
   /////////////////////////////////////////////////
@@ -292,15 +292,15 @@ public:
   /////////////////////////////////////////////////
   bool GetLocationsNav(const CStdString& strBaseDir, CFileItemList& items, const Filter &filter = Filter(), bool countOnly = false);
   bool GetYearsNav(const CStdString& strBaseDir, CFileItemList& items, const Filter &filter = Filter());
-  bool GetFacesNav(const CStdString& strBaseDir, CFileItemList& items, bool PictureAlbumFacesOnly = false, int idLocation = -1, int idPictureAlbum = -1, int idPicture = -1, const Filter &filter = Filter(), const SortDescription &sortDescription = SortDescription(), bool countOnly = false);
+  bool GetFacesNav(const CStdString& strBaseDir, CFileItemList& items, bool PictureAlbumFacesOnly = false, int idLocation = -1, int idAlbum = -1, int idPicture = -1, const Filter &filter = Filter(), const SortDescription &sortDescription = SortDescription(), bool countOnly = false);
   bool GetCommonNav(const CStdString &strBaseDir, const CStdString &table, const CStdString &labelField, CFileItemList &items, const Filter &filter /* = Filter() */, bool countOnly /* = false */);
   bool GetPictureAlbumTypesNav(const CStdString &strBaseDir, CFileItemList &items, const Filter &filter = Filter(), bool countOnly = false);
   bool GetPictureLabelsNav(const CStdString &strBaseDir, CFileItemList &items, const Filter &filter = Filter(), bool countOnly = false);
   bool GetPictureAlbumsNav(const CStdString& strBaseDir, CFileItemList& items, int idLocation = -1, int idFace = -1, const Filter &filter = Filter(), const SortDescription &sortDescription = SortDescription(), bool countOnly = false);
   bool GetVideoAlbumsNav(const CStdString& strBaseDir, CFileItemList& items, int idLocation = -1, int idFace = -1, const Filter &filter = Filter(), const SortDescription &sortDescription = SortDescription(), bool countOnly = false);
   bool GetPictureAlbumsByYear(const CStdString &strBaseDir, CFileItemList& items, int year);
-  bool GetPicturesNav(const CStdString& strBaseDir, CFileItemList& items, int idLocation, int idFace,int idPictureAlbum, const SortDescription &sortDescription = SortDescription());
-  bool GetVideosNav(const CStdString& strBaseDir, CFileItemList& items, int idLocation, int idFace,int idPictureAlbum, const SortDescription &sortDescription = SortDescription());
+  bool GetPicturesNav(const CStdString& strBaseDir, CFileItemList& items, int idLocation, int idFace,int idAlbum, const SortDescription &sortDescription = SortDescription());
+  bool GetVideosNav(const CStdString& strBaseDir, CFileItemList& items, int idLocation, int idFace,int idAlbum, const SortDescription &sortDescription = SortDescription());
   bool GetPicturesByYear(const CStdString& baseDir, CFileItemList& items, int year);
   bool GetPicturesByWhere(const CStdString &baseDir, const Filter &filter, CFileItemList& items, const SortDescription &sortDescription = SortDescription());
   bool GetVideosByWhere(const CStdString &baseDir, const Filter &filter, CFileItemList& items, const SortDescription &sortDescription = SortDescription());
@@ -356,7 +356,7 @@ public:
   /////////////////////////////////////////////////
   // Art
   /////////////////////////////////////////////////
-  bool SavePictureAlbumThumb(int idPictureAlbum, const CStdString &thumb);
+  bool SavePictureAlbumThumb(int idAlbum, const CStdString &thumb);
   /*! \brief Sets art for a database item.
    Sets a single piece of art for a database item.
    \param mediaId the id in the media (picture/Face/PictureAlbum) table.
@@ -482,8 +482,10 @@ private:
     album_strAlbum,
     album_strFaces,
     album_strLocations,
+    album_strPictureType, // fix 27072014 --- if you have old table please run the alter album.picturetype AS picturetype into  album.strPictureType AS strPictureType,
     album_idAlbumInfo,
-    album_strThumbURL,
+  //  album_strThumbURL,  fix 27072014
+    album_strImage,
   } PictureAlbumFields;
   
   enum _FaceFields

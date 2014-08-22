@@ -1000,8 +1000,8 @@ void CPictureInfoTag::SetPicture(const CPicture& picture)
     SetAlbumFace(picture.albumFace);
     SetComment(picture.strComment);
     SetTakenOn(picture.takenOn);
-  SetOrientation(picture.strOrientation);
-  SetPictureType(picture.strPictureType);
+    SetOrientation(picture.strOrientation);
+    SetPictureType(picture.strPictureType);
     m_strURL = picture.strFileName;
     SYSTEMTIME stTime;
     m_iDbId = picture.idPicture;

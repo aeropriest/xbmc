@@ -25,7 +25,7 @@ using namespace XFILE::PICTUREDATABASEDIRECTORY;
 CQueryParams::CQueryParams()
 {
     m_idFace=-1;
-    m_idPictureAlbum=-1;
+    m_idAlbum=-1;
     m_idLocation=-1;
     m_idPicture=-1;
     m_year=-1;
@@ -52,7 +52,7 @@ void CQueryParams::SetQueryParam(NODE_TYPE NodeType, const CStdString& strNodeNa
         case NODE_TYPE_ALBUM_TOP100:
         case NODE_TYPE_ALBUM:
         case NODE_TYPE_YEAR_ALBUM:
-            m_idPictureAlbum=idDb;
+            m_idAlbum=idDb;
             break;
         case NODE_TYPE_ALBUM_RECENTLY_ADDED_PICTURES:
         case NODE_TYPE_ALBUM_RECENTLY_PLAYED_PICTURES:

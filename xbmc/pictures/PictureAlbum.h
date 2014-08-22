@@ -92,6 +92,7 @@ public:
     bool bCompilation;
     int iPictureCount;
     VECPICTURES pictures;
+    CStdString strImage; //ezee
 };
 
 typedef std::vector<CPictureAlbum> VECPICTUREALBUMS;

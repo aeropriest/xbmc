@@ -63,6 +63,10 @@
 #include "Util.h"
 #include "URL.h"
 #include "music/MusicDatabase.h"
+#include "pictures/PictureDatabase.h" // for ezee
+#include "pictures/PictureAlbum.h" // for ezee
+#include "pictures/Picture.h" // for ezee
+
 #include "cores/IPlayer.h"
 
 #include "filesystem/PluginDirectory.h"
@@ -192,6 +196,7 @@ const BUILT_IN commands[] = {
   { "Container.PreviousSortMethod",false, "Change to the previous sort method" },
   { "Container.SetSortMethod",    true,   "Change to the specified sort method" },
   { "Container.SortDirection",    false,  "Toggle the sort direction" },
+  { "Container.EzeeDbIntoListItem",true,  "Load ItameList from EzeeDB" },
   { "Control.Move",               true,   "Tells the specified control to 'move' to another entry specified by offset" },
   { "Control.SetFocus",           true,   "Change current focus to a different control id" },
   { "Control.Message",            true,   "Send a given message to a control within a given window" },
@@ -1516,6 +1521,280 @@ int CBuiltins::Execute(const CStdString& execString)
       message.SetParam2(1); // reset the history
     g_windowManager.SendMessage(message);
   }
+  //************************************************************************************************************************************
+  // Ezee implementation
+  //************************************************************************************************************************************
+  else if (execute.Equals("Container.EzeeDbIntoListItem") )
+      {
+
+      int iControlId = atoi(params[1].c_str()); // ControlId of ListItem to set
+      bool isByWhere = false;
+      if (params.size() > 2)
+    	  isByWhere = true;
+
+	  // if ((params.size() < 2) || (params[0].find("://") == 0))
+	  if (params.size() < 2)
+	  {   CLog::Log(LOGDEBUG,"Container.EzeeDbIntoListItem error: wrong number of Parameters. Container.EzeeDbIntoListItem(DBUrl,ControlID, BywhereIfexist)");
+	      CLog::Log(LOGDEBUG,"          DBUrl aspected are :                        ");
+	      CLog::Log(LOGDEBUG,"                                picturedb://albums/   ");
+	      CLog::Log(LOGDEBUG,"                                picturedb://pictures/ ");
+	      CLog::Log(LOGDEBUG,"                                videodb://albums/ ");
+
+
+		  return -1;
+		}
+
+	  string DBType   =  params[0].Left(9);
+	  bool isFolder = false;
+      if (ssicmp (params[0].Mid((params[0].find("://")+3),params[0].size()-(params[0].find("://")+4)).c_str(), "albums") == 0 )
+    	  isFolder = true;
+
+	  //************************************************************************************************************************************
+	  // Picture
+	  //************************************************************************************************************************************
+
+	  if  (ssicmp(DBType.c_str(), "picturedb") == 0)
+	  {       CLog::Log(LOGDEBUG,"Container.EzeeDbIntoListItem: You have requested picturedb");
+
+
+
+			  CPictureDatabase m_picturedatabase;
+			  if (!m_picturedatabase.Open())
+			  {       CLog::Log(LOGDEBUG,"Container.EzeeDbIntoListItem error: Database Open failed ");
+						  return -1;
+					}
+
+			  const CVariant parameterObject;
+			  CPictureDbUrl pictureUrl;
+			  SortDescription sorting;
+			  CFileItemList items;
+
+			//************************************************************************************************************************************
+			// All pictures Album
+			//************************************************************************************************************************************
+			  if  (!isByWhere)
+			  {
+				  CLog::Log(LOGDEBUG,"Container.EzeeDbIntoListItem: You have requested all picture album DBUrl %s",params[0].c_str());
+
+				  pictureUrl.FromString(params[0].c_str());
+				  pictureUrl.AddOption("strPictureType", "Picture");
+				  if (!m_picturedatabase.GetPictureAlbumsByWhere(pictureUrl.ToString(), CDatabase::Filter(), items, sorting))
+				  				   {
+				  					  CLog::Log(LOGDEBUG,"Container.EzeeDbIntoListItem error: m_picturedatabase.GetPictureAlbumsByWhere failed ");
+				  					  return -1;
+				  					}
+
+				  int size = items.Size();
+				  if (items.HasProperty("total") && items.GetProperty("total").asInteger() > size)
+					size = (int)items.GetProperty("total").asInteger();
+
+				  for (int i = size - 1; i >= 0; i--)
+								  {
+										 CLog::Log(LOGDEBUG,"Container.EzeeDbIntoListItem Items ... : %s",items[i]->GetLabel().c_str());
+										 CLog::Log(LOGDEBUG," GetPath                               : %s",items[i]->GetPath().c_str());
+										 CLog::Log(LOGDEBUG," GetFolderThumb                        : %s",items[i]->GetFolderThumb().c_str());
+										 CLog::Log(LOGDEBUG," GetMimeType                           : %s",items[i]->GetMimeType().c_str());
+										 CLog::Log(LOGDEBUG," GetAsUrl                              : %s",items[i]->GetAsUrl().GetFileName().c_str());
+										 CLog::Log(LOGDEBUG," GetProperty                           : %s",items[i]->GetProperty("strImage").c_str());
+										 CLog::Log(LOGDEBUG," GetIconImage                          : %s",items[i]->GetIconImage().c_str());
+										 CLog::Log(LOGDEBUG," GetLocalFanart                        : %s",items[i]->GetLocalFanart().c_str());
+										 CLog::Log(LOGDEBUG,"   GetPictureType                      : %s",items[i]->GetPictureInfoTag()->GetPictureType().c_str());
+										 CLog::Log(LOGDEBUG,"   GetPictureAlbum                     : %s",items[i]->GetPictureInfoTag()->GetPictureAlbum().c_str());
+										 CLog::Log(LOGDEBUG,"   GetType                             : %s",items[i]->GetPictureInfoTag()->GetType().c_str());
+										 CLog::Log(LOGDEBUG,"   GetTitle                            : %s",items[i]->GetPictureInfoTag()->GetTitle().c_str());
+										 CLog::Log(LOGDEBUG,"   GetPictureType                      : %s",items[i]->GetPictureInfoTag()->GetPictureType().c_str());
+
+										 for (int j = items[i]->GetIconImage().length() - 1; j >= 0; j--)
+											 if (items[i]->GetIconImage().Mid(j,1) == "/")
+											 {
+														 items[i]->SetLabel2(items[i]->GetIconImage().Left(j));
+														 j=0;
+											 }
+								  }
+
+
+			  } // end all albums
+			  else
+			//************************************************************************************************************************************
+			// One Album
+			//************************************************************************************************************************************
+			  {
+				  CLog::Log(LOGDEBUG,"Container.EzeeDbIntoListItem: You have requested all picture album DBUrl %s ByWhere %s  AlbumId %d",params[0].c_str(), params[2].c_str(), m_picturedatabase.GetPictureAlbumByName(params[2].c_str()));
+				  pictureUrl.FromString(params[0].c_str());
+
+				  if (!m_picturedatabase.GetPicturesNav(pictureUrl.ToString(),items, -1, -1, m_picturedatabase.GetPictureAlbumByName(params[2].c_str())))
+				  // if (!m_picturedatabase.GetPictureAlbumsByWhere(pictureUrl.ToString(), CDatabase::Filter(), items, sorting))
+				  				   {
+				  					  CLog::Log(LOGDEBUG,"Container.EzeeDbIntoListItem error: m_picturedatabase.GetPicturesNav failed ");
+				  					  return -1;
+				  					}
+				  int size = items.Size();
+				  if (items.HasProperty("total") && items.GetProperty("total").asInteger() > size)
+					size = (int)items.GetProperty("total").asInteger();
+
+				  for (int i = size - 1; i >= 0; i--)
+								  {
+										 CLog::Log(LOGDEBUG,"Container.EzeeDbIntoListItem Items ... : %s",items[i]->GetLabel().c_str());
+										 CLog::Log(LOGDEBUG," GetPath                               : %s",items[i]->GetPath().c_str());
+										 CLog::Log(LOGDEBUG," GetFolderThumb                        : %s",items[i]->GetFolderThumb().c_str());
+										 CLog::Log(LOGDEBUG," GetMimeType                           : %s",items[i]->GetMimeType().c_str());
+										 CLog::Log(LOGDEBUG," GetAsUrl                              : %s",items[i]->GetAsUrl().GetFileName().c_str());
+										 CLog::Log(LOGDEBUG," GetProperty                           : %s",items[i]->GetProperty("strImage").c_str());
+										 CLog::Log(LOGDEBUG," GetIconImage                          : %s",items[i]->GetIconImage().c_str());
+										 CLog::Log(LOGDEBUG," GetLocalFanart                        : %s",items[i]->GetLocalFanart().c_str());
+										 CLog::Log(LOGDEBUG,"   GetPictureType                      : %s",items[i]->GetPictureInfoTag()->GetPictureType().c_str());
+										 CLog::Log(LOGDEBUG,"   GetPictureAlbum                     : %s",items[i]->GetPictureInfoTag()->GetPictureAlbum().c_str());
+										 CLog::Log(LOGDEBUG,"   GetType                             : %s",items[i]->GetPictureInfoTag()->GetType().c_str());
+										 CLog::Log(LOGDEBUG,"   GetTitle                            : %s",items[i]->GetPictureInfoTag()->GetTitle().c_str());
+										 CLog::Log(LOGDEBUG,"   GetPictureType                      : %s",items[i]->GetPictureInfoTag()->GetPictureType().c_str());
+
+										 for (int j = items[i]->GetIconImage().length() - 1; j >= 0; j--)
+											 if (items[i]->GetIconImage().Mid(j,1) == "/")
+											 {
+														 items[i]->SetLabel2(items[i]->GetIconImage().Left(j));
+														 j=0;
+											 }
+								  }
+
+			  }
+
+			//************************************************************************************************************************************
+			// set skin control
+			//************************************************************************************************************************************
+			  CGUIMessage msg(GUI_MSG_LABEL_BIND, g_windowManager.GetActiveWindow(), iControlId, 0, 0, (CFileItemList *) &items);
+			  g_windowManager.SendMessage(msg);
+
+
+			  m_picturedatabase.Close();
+
+	  	}// end Picture
+
+
+	  //************************************************************************************************************************************
+	  // Video
+	  //************************************************************************************************************************************
+	  DBType   =  params[0].Left(7);
+	  if  (ssicmp(DBType.c_str(), "videodb") == 0)
+	  {       CLog::Log(LOGDEBUG,"Container.EzeeDbIntoListItem: You have requested videodb");
+
+			  CPictureDatabase m_picturedatabase;
+			  if (!m_picturedatabase.Open())
+			  {       CLog::Log(LOGDEBUG,"Container.EzeeDbIntoListItem error: Database Open failed ");
+						  return -1;
+					}
+
+			  const CVariant parameterObject;
+			  CPictureDbUrl pictureUrl;
+			  SortDescription sorting;
+			  CFileItemList items;
+
+			//************************************************************************************************************************************
+			// All Video Album
+			//************************************************************************************************************************************
+			  if  (!isByWhere)
+			  {
+				  CLog::Log(LOGDEBUG,"Container.EzeeDbIntoListItem: You have requested all picture album DBUrl %s",params[0].c_str());
+				  params[0].Replace("videodb", "picturedb");
+				  if (!pictureUrl.FromString(params[0].c_str()))
+				  {	 CLog::Log(LOGERROR,"pictureUrl.FromString error: %s ",params[0].c_str());
+				     return false;
+				  }
+				  pictureUrl.AddOption("strPictureType", "Video");
+				  if (!m_picturedatabase.GetPictureAlbumsByWhere(pictureUrl.ToString(), CDatabase::Filter(), items, sorting))
+				  				   {
+				  					  CLog::Log(LOGDEBUG,"Container.EzeeDbIntoListItem error: m_picturedatabase.GetVideosByWhere failed ");
+				  					  return -1;
+				  					}
+
+				  int size = items.Size();
+				  if (items.HasProperty("total") && items.GetProperty("total").asInteger() > size)
+					size = (int)items.GetProperty("total").asInteger();
+
+				  for (int i = size - 1; i >= 0; i--)
+								  {
+										 CLog::Log(LOGDEBUG,"Container.EzeeDbIntoListItem Items ... : %s",items[i]->GetLabel().c_str());
+										 CLog::Log(LOGDEBUG," GetPath                               : %s",items[i]->GetPath().c_str());
+										 CLog::Log(LOGDEBUG," GetFolderThumb                        : %s",items[i]->GetFolderThumb().c_str());
+										 CLog::Log(LOGDEBUG," GetMimeType                           : %s",items[i]->GetMimeType().c_str());
+										 CLog::Log(LOGDEBUG," GetAsUrl                              : %s",items[i]->GetAsUrl().GetFileName().c_str());
+										 CLog::Log(LOGDEBUG," GetProperty                           : %s",items[i]->GetProperty("strImage").c_str());
+										 CLog::Log(LOGDEBUG," GetIconImage                          : %s",items[i]->GetIconImage().c_str());
+										 CLog::Log(LOGDEBUG," GetLocalFanart                        : %s",items[i]->GetLocalFanart().c_str());
+										 CLog::Log(LOGDEBUG,"   GetPictureType                      : %s",items[i]->GetPictureInfoTag()->GetPictureType().c_str());
+										 CLog::Log(LOGDEBUG,"   GetPictureAlbum                     : %s",items[i]->GetPictureInfoTag()->GetPictureAlbum().c_str());
+										 CLog::Log(LOGDEBUG,"   GetType                             : %s",items[i]->GetPictureInfoTag()->GetType().c_str());
+										 CLog::Log(LOGDEBUG,"   GetTitle                            : %s",items[i]->GetPictureInfoTag()->GetTitle().c_str());
+										 CLog::Log(LOGDEBUG,"   GetPictureType                      : %s",items[i]->GetPictureInfoTag()->GetPictureType().c_str());
+
+										 for (int j = items[i]->GetIconImage().length() - 1; j >= 0; j--)
+											 if (items[i]->GetIconImage().Mid(j,1) == "/")
+											 {
+														 items[i]->SetLabel2(items[i]->GetIconImage().Left(j));
+														 j=0;
+											 }
+								  }
+
+
+			  } // end all albums
+			  else
+			//************************************************************************************************************************************
+			// One Album
+			//************************************************************************************************************************************
+			  {
+				  CLog::Log(LOGDEBUG,"Container.EzeeDbIntoListItem: You have requested all picture album DBUrl %s ByWhere %s  AlbumId %d",params[0].c_str(), params[2].c_str(), m_picturedatabase.GetPictureAlbumByName(params[2].c_str()));
+				  params[0].Replace("videodb", "picturedb");
+				  pictureUrl.FromString(params[0].c_str());
+
+				  if (!m_picturedatabase.GetVideosNav(pictureUrl.ToString(),items, -1, -1, m_picturedatabase.GetVideoAlbumByName(params[2].c_str())))
+				  // if (!m_picturedatabase.GetPictureAlbumsByWhere(pictureUrl.ToString(), CDatabase::Filter(), items, sorting))
+				  				   {
+				  					  CLog::Log(LOGDEBUG,"Container.EzeeDbIntoListItem error: m_picturedatabase.GetVideosNav failed ");
+				  					  return -1;
+				  					}
+
+
+				  int size = items.Size();
+				  if (items.HasProperty("total") && items.GetProperty("total").asInteger() > size)
+					size = (int)items.GetProperty("total").asInteger();
+
+				  for (int i = size - 1; i >= 0; i--)
+								  {
+										 CLog::Log(LOGDEBUG,"Container.EzeeDbIntoListItem Items ... : %s",items[i]->GetLabel().c_str());
+										 CLog::Log(LOGDEBUG," GetPath                               : %s",items[i]->GetPath().c_str());
+										 CLog::Log(LOGDEBUG," GetFolderThumb                        : %s",items[i]->GetFolderThumb().c_str());
+										 CLog::Log(LOGDEBUG," GetMimeType                           : %s",items[i]->GetMimeType().c_str());
+										 CLog::Log(LOGDEBUG," GetAsUrl                              : %s",items[i]->GetAsUrl().GetFileName().c_str());
+										 CLog::Log(LOGDEBUG," GetProperty                           : %s",items[i]->GetProperty("strImage").c_str());
+										 CLog::Log(LOGDEBUG," GetIconImage                          : %s",items[i]->GetIconImage().c_str());
+										 CLog::Log(LOGDEBUG," GetLocalFanart                        : %s",items[i]->GetLocalFanart().c_str());
+										 CLog::Log(LOGDEBUG,"   GetPictureType                      : %s",items[i]->GetPictureInfoTag()->GetPictureType().c_str());
+										 CLog::Log(LOGDEBUG,"   GetPictureAlbum                     : %s",items[i]->GetPictureInfoTag()->GetPictureAlbum().c_str());
+										 CLog::Log(LOGDEBUG,"   GetType                             : %s",items[i]->GetPictureInfoTag()->GetType().c_str());
+										 CLog::Log(LOGDEBUG,"   GetTitle                            : %s",items[i]->GetPictureInfoTag()->GetTitle().c_str());
+										 CLog::Log(LOGDEBUG,"   GetPictureType                      : %s",items[i]->GetPictureInfoTag()->GetPictureType().c_str());
+
+										 for (int j = items[i]->GetIconImage().length() - 1; j >= 0; j--)
+											 if (items[i]->GetIconImage().Mid(j,1) == "/")
+											 {
+														 items[i]->SetLabel2(items[i]->GetIconImage().Left(j));
+														 j=0;
+											 }
+								  }
+
+			  }
+
+			//************************************************************************************************************************************
+			// set skin control
+			//************************************************************************************************************************************
+			  CGUIMessage msg(GUI_MSG_LABEL_BIND, g_windowManager.GetActiveWindow(), iControlId, 0, 0, (CFileItemList *) &items);
+			  g_windowManager.SendMessage(msg);
+
+
+			  m_picturedatabase.Close();
+
+	  	}// end Video
+
+      }
   else if (execute.Equals("container.nextviewmode"))
   {
     CGUIMessage message(GUI_MSG_CHANGE_VIEW_MODE, g_windowManager.GetActiveWindow(), 0, 0, 1);
